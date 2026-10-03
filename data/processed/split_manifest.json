@@ -1,0 +1,26 @@
+{
+    "validation_summary": {
+        "total_valid": 200,
+        "real_count": 100,
+        "fake_count": 100,
+        "corrupted_count": 0,
+        "duplicate_count": 0
+    },
+    "splits": {
+        "train": {
+            "total": 140,
+            "real": 70,
+            "fake": 70
+        },
+        "valid": {
+            "total": 30,
+            "real": 15,
+            "fake": 15
+        },
+        "test": {
+            "total": 30,
+            "real": 15,
+            "fake": 15
+        }
+    }
+}
