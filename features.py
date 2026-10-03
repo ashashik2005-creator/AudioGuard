@@ -1,5 +1,5 @@
 """
-Feature Extraction Utilities for Wav2Vec 2.0 and Handcrafted Audio Features (MFCC, Mel Spec, Spectral Stats)
+Feature Extraction Utilities for Handcrafted Audio Features (MFCC, Mel Spec, Spectral Stats)
 """
 
 import os
@@ -9,133 +9,15 @@ from typing import Union, List, Tuple, Dict, Any, Optional
 
 import numpy as np
 import librosa
-import torch
 import joblib
-from transformers import Wav2Vec2Model, Wav2Vec2FeatureExtractor
 
 import config
 from audio_utils import load_and_preprocess_audio, pad_or_crop_waveform, extract_sliding_windows
 
 
-class Wav2VecExtractor:
-    """
-    Wav2Vec 2.0 Feature Extractor using pretrained facebook/wav2vec2-base model.
-    Extracts contextual temporal representations and applies temporal pooling.
-    """
-
-    def __init__(self, model_name: str = config.WAV2VEC_MODEL_NAME, device: str = "cpu"):
-        self.device = torch.device(device)
-        self.model_name = model_name
-
-        # Load HuggingFace Wav2Vec2 feature extractor & model
-        self.hf_feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_name)
-        self.model = Wav2Vec2Model.from_pretrained(model_name).to(self.device)
-        self.model.eval()
-
-        # Freeze Wav2Vec 2.0 backbone parameters for CPU efficiency
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-    def extract_window_embedding(self, waveform_chunk: np.ndarray) -> np.ndarray:
-        """
-        Extracts 768-dim temporal pooled embedding for a 4-second audio window (64000 samples).
-        """
-        # Ensure input length is padded or cropped to standard window size
-        waveform_chunk = pad_or_crop_waveform(waveform_chunk, config.WINDOW_SAMPLES)
-
-        inputs = self.hf_feature_extractor(
-            waveform_chunk,
-            sampling_rate=config.SAMPLE_RATE,
-            return_tensors="pt"
-        )
-        input_values = inputs.input_values.to(self.device)
-
-        with torch.no_grad():
-            outputs = self.model(input_values)
-            # outputs.last_hidden_state: [1, seq_len, 768]
-            hidden_states = outputs.last_hidden_state
-
-            # Temporal Mean Pooling across time frames
-            pooled_embedding = torch.mean(hidden_states, dim=1).squeeze(0)  # [768]
-
-        return pooled_embedding.cpu().numpy().astype(np.float32)
-
-    def extract_file_embedding(self, file_input: Union[str, Path, bytes, io.BytesIO]) -> np.ndarray:
-        """
-        Extracts embedding for an entire audio file.
-        If file > 4s, extracts embeddings for all sliding windows and averages them.
-        """
-        waveform, sr, _ = load_and_preprocess_audio(file_input)
-        windows = extract_sliding_windows(waveform)
-
-        window_embeddings = []
-        for win_wave, _, _ in windows:
-            emb = self.extract_window_embedding(win_wave)
-            window_embeddings.append(emb)
-
-        # Average window embeddings across file
-        file_embedding = np.mean(window_embeddings, axis=0)
-        return file_embedding.astype(np.float32)
-
-    def cache_split_features(
-        self, split_dir: Union[str, Path], cache_file: Union[str, Path], force: bool = False
-    ) -> Tuple[np.ndarray, np.ndarray, List[str]]:
-        """
-        Extracts and caches Wav2Vec embeddings for a dataset split (train/valid/test).
-        Returns (embeddings, labels, file_paths).
-        """
-        split_dir = Path(split_dir)
-        cache_file = Path(cache_file)
-
-        if cache_file.exists() and not force:
-            print(f"Loading cached Wav2Vec features from {cache_file}...")
-            cached_data = torch.load(cache_file, map_location="cpu", weights_only=False)
-            return cached_data["embeddings"].numpy(), cached_data["labels"].numpy(), cached_data["file_paths"]
-
-        print(f"Extracting Wav2Vec features from {split_dir}...")
-        embeddings = []
-        labels = []
-        file_paths = []
-
-        for label_str, label_int in config.LABEL_TO_INT.items():
-            class_dir = split_dir / label_str
-            if not class_dir.exists():
-                continue
-
-            audio_files = [
-                f for f in class_dir.iterdir()
-                if f.is_file() and f.suffix.lower() in config.SUPPORTED_FORMATS
-            ]
-
-            for audio_path in audio_files:
-                try:
-                    emb = self.extract_file_embedding(audio_path)
-                    embeddings.append(emb)
-                    labels.append(label_int)
-                    file_paths.append(str(audio_path))
-                except Exception as e:
-                    print(f"Skipping corrupt or unreadable file {audio_path}: {e}")
-
-        if len(embeddings) == 0:
-            raise ValueError(f"No valid audio features extracted from {split_dir}")
-
-        X = np.array(embeddings, dtype=np.float32)
-        y = np.array(labels, dtype=np.int64)
-
-        cache_data = {
-            "embeddings": torch.tensor(X),
-            "labels": torch.tensor(y),
-            "file_paths": file_paths
-        }
-        torch.save(cache_data, cache_file)
-        print(f"Successfully cached {len(X)} samples to {cache_file}")
-
-        return X, y, file_paths
-
-
 class HandcraftedFeatureExtractor:
     """
-    Lightweight Handcrafted Audio Feature Extractor for CPU fallback model.
+    Lightweight Handcrafted Audio Feature Extractor.
     Extracts MFCCs, Delta MFCCs, Mel Spectrogram stats, Spectral Centroid,
     Bandwidth, Rolloff, ZCR, RMS Energy, and Spectral Flatness.
     """

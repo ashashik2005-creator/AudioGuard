@@ -56,10 +56,6 @@ RANDOM_SEED = 42
 LABEL_TO_INT = {"real": 0, "fake": 1}
 INT_TO_LABEL = {0: "REAL", 1: "FAKE"}
 
-# Model Configurations
-WAV2VEC_MODEL_NAME = "facebook/wav2vec2-base"
-WAV2VEC_EMBEDDING_DIM = 768
-
 # Training Hyperparameters (Optimized for CPU)
 BATCH_SIZE = 4
 EPOCHS = 10

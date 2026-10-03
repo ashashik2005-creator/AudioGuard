@@ -1,6 +1,6 @@
 """
 Command-Line Interface (CLI) Prediction Tool for Audio Deepfake Detection
-Usage: python predict.py --file sample.wav [--backend wav2vec|mfcc]
+Usage: python predict.py --file sample.wav
 """
 
 import time
@@ -10,16 +10,14 @@ from pathlib import Path
 from typing import Dict, Any, Union, Tuple
 
 import numpy as np
-import torch
 import joblib
 
 import config
 from audio_utils import load_and_preprocess_audio, extract_sliding_windows
-from features import Wav2VecExtractor, HandcraftedFeatureExtractor
-from model import Wav2VecClassifierHead
+from features import HandcraftedFeatureExtractor
 
 
-def load_trained_model_and_config(backend: str = None) -> Tuple[Any, Any, Dict[str, Any]]:
+def load_trained_model_and_config() -> Tuple[Any, Any, Dict[str, Any]]:
     """
     Loads saved model weights, feature extractor, and configuration parameters.
     """
@@ -30,31 +28,14 @@ def load_trained_model_and_config(backend: str = None) -> Tuple[Any, Any, Dict[s
     with open(config_file, "r") as f:
         config_info = json.load(f)
 
-    selected_backend = backend.lower() if backend else config_info.get("backend", "wav2vec")
+    model_path = config.MODELS_DIR / "mfcc_model.joblib"
+    if not model_path.exists():
+        raise FileNotFoundError(f"MFCC classifier model not found at {model_path}")
 
-    if selected_backend == "wav2vec":
-        model_path = config.MODELS_DIR / "wav2vec_classifier.pt"
-        if not model_path.exists():
-            raise FileNotFoundError(f"Wav2Vec classifier weights not found at {model_path}")
+    pipeline = joblib.load(model_path)
+    extractor = HandcraftedFeatureExtractor()
 
-        extractor = Wav2VecExtractor()
-        classifier_head = Wav2VecClassifierHead(input_dim=config.WAV2VEC_EMBEDDING_DIM)
-        classifier_head.load_state_dict(torch.load(model_path, map_location="cpu"))
-        classifier_head.eval()
-
-        return classifier_head, extractor, config_info
-
-    elif selected_backend == "mfcc":
-        model_path = config.MODELS_DIR / "mfcc_model.joblib"
-        if not model_path.exists():
-            raise FileNotFoundError(f"MFCC classifier model not found at {model_path}")
-
-        pipeline = joblib.load(model_path)
-        extractor = HandcraftedFeatureExtractor()
-
-        return pipeline, extractor, config_info
-    else:
-        raise ValueError(f"Unknown model backend: {selected_backend}")
+    return pipeline, extractor, config_info
 
 
 def predict_audio_file(audio_path: Union[str, Path], backend: str = None) -> Dict[str, Any]:
@@ -71,8 +52,8 @@ def predict_audio_file(audio_path: Union[str, Path], backend: str = None) -> Dic
         raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
     # Load model and config
-    classifier, extractor, config_info = load_trained_model_and_config(backend=backend)
-    selected_backend = backend.lower() if backend else config_info.get("backend", "wav2vec")
+    classifier, extractor, config_info = load_trained_model_and_config()
+    selected_backend = config_info.get("backend", "mfcc")
     threshold = config_info.get("decision_threshold", config.DEFAULT_DECISION_THRESHOLD)
     uncertainty_margin = config_info.get("uncertainty_margin", config.UNCERTAINTY_MARGIN)
 
@@ -84,15 +65,9 @@ def predict_audio_file(audio_path: Union[str, Path], backend: str = None) -> Dic
     fake_probs = []
 
     for win_wave, start_sec, end_sec in windows:
-        if selected_backend == "wav2vec":
-            emb = extractor.extract_window_embedding(win_wave)
-            emb_tensor = torch.tensor(emb).unsqueeze(0)  # [1, 768]
-            with torch.no_grad():
-                prob_fake = float(classifier.predict_proba(emb_tensor).item())
-        else:
-            feat = extractor.extract_waveform_features(win_wave, sr)
-            feat_arr = np.array(feat).reshape(1, -1)
-            prob_fake = float(classifier.predict_proba(feat_arr)[0, 1])
+        feat = extractor.extract_waveform_features(win_wave, sr)
+        feat_arr = np.array(feat).reshape(1, -1)
+        prob_fake = float(classifier.predict_proba(feat_arr)[0, 1])
 
         prob_real = 1.0 - prob_fake
         win_label = "FAKE" if prob_fake >= threshold else "REAL"
@@ -163,14 +138,7 @@ def print_cli_prediction(result: Dict[str, Any]):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Audio Deepfake Prediction")
     parser.add_argument("--file", type=str, required=True, help="Path to input audio file")
-    parser.add_argument(
-        "--backend",
-        type=str,
-        default=None,
-        choices=["wav2vec", "mfcc"],
-        help="Optional model backend override ('wav2vec' or 'mfcc')"
-    )
     args = parser.parse_args()
 
-    res = predict_audio_file(args.file, backend=args.backend)
+    res = predict_audio_file(args.file)
     print_cli_prediction(res)
