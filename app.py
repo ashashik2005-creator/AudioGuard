@@ -1,12 +1,12 @@
 """
-AudioGuard - Premium AI Audio Deepfake Detection Web Application
+AUDIOGUARD - AI Audio Forensic Platform
 Run with: streamlit run app.py
 """
 
 import os
-import io
 import time
 import tempfile
+import io
 from pathlib import Path
 
 import numpy as np
@@ -19,215 +19,231 @@ from predict import predict_audio_file
 from audio_utils import load_and_preprocess_audio, compute_mel_spectrogram, compute_mfcc_visualization
 
 # -------------------------------------------------------------------
-# STREAMLIT CONFIGURATION & HYPER-MODERN DARK SAAS STYLING
+# STREAMLIT PAGE CONFIGURATION & FORENSIC DARK THEME STYLING
 # -------------------------------------------------------------------
 st.set_page_config(
-    page_title="AudioGuard | AI Audio Deepfake Detection",
+    page_title="AudioGuard | AI Audio Forensic Platform",
     page_icon="🎙️",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
-# Custom CSS for Stunning Dark Navy / Purple Gradient SaaS Interface
+# Premium Dark SaaS Forensic Platform Styling
 st.markdown("""
 <style>
-    /* Dark Theme Base */
+    /* Global Base */
     .stApp {
         background-color: #0B0F19;
         color: #F8FAFC;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    /* Hide default Streamlit padding & header elements */
+    /* Hide Streamlit Default Elements */
     header {visibility: hidden;}
     footer {visibility: hidden;}
     .block-container {
-        padding-top: 1.2rem;
+        padding-top: 1.5rem;
         padding-bottom: 2.5rem;
-        max-width: 1100px;
+        max-width: 1080px;
     }
 
-    /* Glassmorphic Brand Header */
-    .brand-header {
+    /* Sidebar Styling */
+    section[data-testid="stSidebar"] {
+        background-color: #0F172A !important;
+        border-right: 1px solid #1E293B !important;
+        padding-top: 1.5rem;
+    }
+    .sidebar-brand {
+        padding: 0 12px 20px 12px;
+        border-bottom: 1px solid #1E293B;
+        margin-bottom: 24px;
+    }
+    .sidebar-title {
+        font-size: 1.6rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, #818CF8 0%, #C084FC 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .sidebar-sub {
+        font-size: 0.8rem;
+        color: #94A3B8;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-top: 4px;
+    }
+    .sidebar-status-card {
+        background: #151D2A;
+        border: 1px solid #1E293B;
+        border-radius: 14px;
+        padding: 16px;
+        margin-top: 40px;
+    }
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #10B981;
+    }
+
+    /* Top Header Bar */
+    .top-header-bar {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px 28px;
+        padding: 14px 24px;
         background: rgba(15, 23, 42, 0.75);
         backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 20px;
+        border: 1px solid #1E293B;
+        border-radius: 16px;
         margin-bottom: 24px;
-        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.6);
     }
-    .brand-name {
-        font-size: 1.8rem;
-        font-weight: 900;
-        background: linear-gradient(135deg, #818CF8 0%, #C084FC 50%, #F472B6 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+    .top-header-left {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #F8FAFC;
     }
-    .brand-sub {
+    .top-header-left span {
         font-size: 0.88rem;
         color: #94A3B8;
-        margin-top: 2px;
+        font-weight: 400;
+        margin-left: 10px;
+    }
+    .top-header-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .status-badge {
+        background: rgba(16, 185, 129, 0.15);
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        color: #34D399;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 20px;
+    }
+    .tech-badge {
+        background: rgba(99, 102, 241, 0.15);
+        border: 1px solid rgba(99, 102, 241, 0.4);
+        color: #A5B4FC;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 20px;
     }
 
     /* Hero Section */
-    .hero-wrapper {
+    .hero-container {
         text-align: center;
         padding: 52px 24px 36px 24px;
-        background: radial-gradient(circle at 50% 30%, rgba(99, 102, 241, 0.22) 0%, rgba(168, 85, 247, 0.08) 45%, rgba(11, 15, 25, 0) 70%);
+        background: radial-gradient(circle at 50% 30%, rgba(99, 102, 241, 0.2) 0%, rgba(11, 15, 25, 0) 70%);
         border-radius: 24px;
-        margin-bottom: 28px;
+        margin-bottom: 32px;
         border: 1px solid rgba(255, 255, 255, 0.05);
     }
-    .hero-badge {
-        display: inline-block;
-        padding: 6px 16px;
-        background: rgba(99, 102, 241, 0.15);
-        border: 1px solid rgba(99, 102, 241, 0.4);
-        border-radius: 30px;
-        color: #A5B4FC;
-        font-size: 0.82rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        margin-bottom: 18px;
-    }
     .hero-h1 {
-        font-size: 3.2rem;
+        font-size: 3.0rem;
         font-weight: 900;
-        letter-spacing: -0.025em;
-        line-height: 1.2;
+        letter-spacing: -0.02em;
         color: #FFFFFF;
         margin-bottom: 16px;
     }
     .hero-p {
-        font-size: 1.22rem;
+        font-size: 1.2rem;
         color: #94A3B8;
         max-width: 680px;
-        margin: 0 auto 28px auto;
+        margin: 0 auto 32px auto;
         line-height: 1.55;
     }
 
-    /* Equalizer Waveform Graphic */
-    .eq-visualizer {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 7px;
-        height: 46px;
-        margin: 20px 0;
-    }
-    .eq-bar {
-        width: 5px;
-        background: linear-gradient(180deg, #6366F1 0%, #A855F7 100%);
-        border-radius: 3px;
-        animation: pulse 1.4s ease-in-out infinite alternate;
-    }
-    .eq-bar:nth-child(2) { height: 34px; animation-delay: 0.2s; }
-    .eq-bar:nth-child(3) { height: 46px; animation-delay: 0.4s; }
-    .eq-bar:nth-child(4) { height: 22px; animation-delay: 0.1s; }
-    .eq-bar:nth-child(5) { height: 40px; animation-delay: 0.5s; }
-    .eq-bar:nth-child(6) { height: 28px; animation-delay: 0.3s; }
-
-    /* Feature Cards */
-    .feature-item {
+    /* Feature Info Cards */
+    .info-card {
         background: #151D2A;
         border: 1px solid #1E293B;
         border-radius: 18px;
         padding: 24px;
         height: 100%;
-        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        transition: transform 0.2s ease, border-color 0.2s ease;
     }
-    .feature-item:hover {
-        transform: translateY(-4px);
+    .info-card:hover {
+        transform: translateY(-3px);
         border-color: #6366F1;
-        box-shadow: 0 12px 24px -10px rgba(99, 102, 241, 0.3);
     }
-    .feature-icon-box {
+    .info-icon {
         font-size: 2.2rem;
         margin-bottom: 12px;
     }
-    .feature-title-box {
+    .info-title {
         font-size: 1.15rem;
         font-weight: 700;
         color: #F8FAFC;
         margin-bottom: 8px;
     }
-    .feature-desc-box {
+    .info-desc {
         font-size: 0.92rem;
         color: #94A3B8;
         line-height: 1.5;
     }
 
-    /* Metric Highlights Strip */
-    .stats-strip {
-        display: flex;
-        align-items: center;
-        justify-content: space-around;
+    /* Supported Strip */
+    .supported-strip {
         background: #151D2A;
         border: 1px solid #1E293B;
         border-radius: 16px;
-        padding: 20px;
+        padding: 20px 28px;
         margin-top: 32px;
-    }
-    .stat-val {
-        font-size: 1.6rem;
-        font-weight: 800;
-        color: #38BDF8;
-    }
-    .stat-lbl {
-        font-size: 0.82rem;
-        color: #94A3B8;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
 
     /* Result Cards */
-    .result-real-card {
+    .result-card-real {
         background: linear-gradient(135deg, rgba(6, 78, 59, 0.5) 0%, rgba(15, 23, 42, 0.9) 100%);
         border: 2px solid #10B981;
         border-radius: 24px;
         padding: 40px 24px;
         text-align: center;
-        margin-bottom: 24px;
-        box-shadow: 0 20px 35px -10px rgba(16, 185, 129, 0.25);
+        margin-bottom: 28px;
+        box-shadow: 0 20px 30px -10px rgba(16, 185, 129, 0.25);
     }
-    .result-fake-card {
+    .result-card-fake {
         background: linear-gradient(135deg, rgba(127, 29, 29, 0.5) 0%, rgba(15, 23, 42, 0.9) 100%);
         border: 2px solid #EF4444;
         border-radius: 24px;
         padding: 40px 24px;
         text-align: center;
-        margin-bottom: 24px;
-        box-shadow: 0 20px 35px -10px rgba(239, 68, 68, 0.25);
+        margin-bottom: 28px;
+        box-shadow: 0 20px 30px -10px rgba(239, 68, 68, 0.25);
     }
-    .result-uncertain-card {
+    .result-card-uncertain {
         background: linear-gradient(135deg, rgba(120, 53, 15, 0.5) 0%, rgba(15, 23, 42, 0.9) 100%);
         border: 2px solid #F59E0B;
         border-radius: 24px;
         padding: 40px 24px;
         text-align: center;
-        margin-bottom: 24px;
-        box-shadow: 0 20px 35px -10px rgba(245, 158, 11, 0.25);
+        margin-bottom: 28px;
+        box-shadow: 0 20px 30px -10px rgba(245, 158, 11, 0.25);
     }
     .result-symbol {
-        font-size: 3.6rem;
+        font-size: 3.8rem;
         margin-bottom: 8px;
     }
-    .result-main-header {
+    .result-h1 {
         font-size: 2.5rem;
         font-weight: 900;
         letter-spacing: -0.01em;
         margin-bottom: 8px;
     }
-    .result-sub-header {
+    .result-p {
         font-size: 1.15rem;
         color: #E2E8F0;
         max-width: 600px;
@@ -235,28 +251,28 @@ st.markdown("""
         line-height: 1.5;
     }
 
-    /* Summary Metric Box */
-    .metric-summary-card {
+    /* Grid Metric Card */
+    .grid-metric-card {
         background: #151D2A;
         border: 1px solid #1E293B;
-        border-radius: 16px;
-        padding: 20px;
+        border-radius: 14px;
+        padding: 16px;
         text-align: center;
     }
-    .metric-summary-val {
-        font-size: 1.85rem;
+    .grid-metric-val {
+        font-size: 1.35rem;
         font-weight: 800;
         color: #38BDF8;
     }
-    .metric-summary-lbl {
-        font-size: 0.82rem;
+    .grid-metric-lbl {
+        font-size: 0.78rem;
         color: #94A3B8;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
         margin-top: 4px;
     }
 
-    /* Custom Gradient Buttons */
+    /* Custom Primary Button */
     div.stButton > button {
         background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
         color: white;
@@ -274,280 +290,211 @@ st.markdown("""
         transform: translateY(-2px);
         box-shadow: 0 8px 24px 0 rgba(99, 102, 241, 0.55);
     }
-
-    /* Tabs Styling */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 12px;
-        background-color: transparent;
-        border-bottom: 1px solid #1E293B;
-        padding-bottom: 8px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 46px;
-        background-color: #151D2A;
-        border-radius: 12px;
-        color: #94A3B8;
-        font-weight: 600;
-        border: 1px solid #1E293B;
-        padding: 0 24px;
-    }
-    .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%) !important;
-        color: white !important;
-        border: none !important;
-    }
-
-    /* Footer */
-    .footer-text {
-        text-align: center;
-        padding: 36px 0 16px 0;
-        border-top: 1px solid #1E293B;
-        margin-top: 56px;
-        color: #64748B;
-        font-size: 0.88rem;
-    }
 </style>
 """, unsafe_allow_html=True)
 
 
-# Initialize Session State Variables
-if "page" not in st.session_state:
-    st.session_state.page = "Home"
-if "reset_id" not in st.session_state:
-    st.session_state.reset_id = 0
-if "preset_sample" not in st.session_state:
-    st.session_state.preset_sample = None
+# -------------------------------------------------------------------
+# SIDEBAR NAVIGATION & ENGINE STATUS
+# -------------------------------------------------------------------
+with st.sidebar:
+    st.markdown("""
+    <div class="sidebar-brand">
+        <div class="sidebar-title">🎙️ AUDIOGUARD</div>
+        <div class="sidebar-sub">AI Audio Forensic Platform</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    nav_page = st.radio(
+        "Navigation",
+        ["🏠 Dashboard", "🎙️ Analyze Audio", "ℹ️ About"],
+        label_visibility="collapsed"
+    )
+
+    st.markdown("""
+    <div class="sidebar-status-card">
+        <div style="font-size: 0.8rem; color: #94A3B8; text-transform: uppercase; font-weight: 600;">Detection Engine</div>
+        <div class="status-indicator" style="margin-top: 6px;">
+            <span>🟢</span> Operational
+        </div>
+        <div style="font-size: 0.82rem; color: #CBD5E1; margin-top: 4px; font-weight: 600;">MFCC + Random Forest</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # -------------------------------------------------------------------
-# BRAND HEADER & TOP NAVIGATION
+# TOP HEADER BAR
 # -------------------------------------------------------------------
 st.markdown("""
-<div class="brand-header">
-    <div>
-        <div class="brand-name">🎙️ AudioGuard</div>
-        <div class="brand-sub">AI-Powered Audio Deepfake Detection</div>
+<div class="top-header-bar">
+    <div class="top-header-left">
+        AudioGuard <span>AI Audio Deepfake Detection</span>
+    </div>
+    <div class="top-header-right">
+        <div class="status-badge">🟢 Detection Engine Ready</div>
+        <div class="tech-badge">MFCC + Random Forest</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-nav1, nav2, nav3 = st.columns([1, 1, 1])
-with nav1:
-    if st.button("🏠 Home", key="n_home"):
-        st.session_state.page = "Home"
-        st.session_state.preset_sample = None
-        st.rerun()
-with nav2:
-    if st.button("🎙️ Analyze", key="n_analyze"):
-        st.session_state.page = "Analyze"
-        st.rerun()
-with nav3:
-    if st.button("ℹ️ About", key="n_about"):
-        st.session_state.page = "About"
-        st.session_state.preset_sample = None
-        st.rerun()
-
-st.markdown("<br>", unsafe_allow_html=True)
-
 
 # -------------------------------------------------------------------
-# 1. HOME PAGE
+# PAGE 1: DASHBOARD
 # -------------------------------------------------------------------
-if st.session_state.page == "Home":
+if nav_page == "🏠 Dashboard":
     st.markdown("""
-    <div class="hero-wrapper">
-        <div class="hero-badge">⚡ REAL-TIME ACOUSTIC VOICE VERIFICATION</div>
+    <div class="hero-container">
         <div class="hero-h1">Detect AI-Generated Voices</div>
-        <div class="hero-p">Analyze speech recordings with AI and discover whether the voice is genuine human speech or synthetic AI deepfake.</div>
-        <div class="eq-visualizer">
-            <div class="eq-bar"></div>
-            <div class="eq-bar"></div>
-            <div class="eq-bar"></div>
-            <div class="eq-bar"></div>
-            <div class="eq-bar"></div>
-            <div class="eq-bar"></div>
-        </div>
+        <div class="hero-p">Analyze speech recordings using acoustic feature analysis and a trained machine-learning model to identify characteristics associated with synthetic or AI-generated speech.</div>
     </div>
     """, unsafe_allow_html=True)
 
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("🎙️ Analyze Audio File", key="cta_an"):
-            st.session_state.page = "Analyze"
-            st.session_state.preset_sample = None
+        if st.button("🎙️ Analyze Audio", key="dash_an"):
+            st.session_state["nav_override"] = "🎙️ Analyze Audio"
             st.rerun()
     with c2:
-        if st.button("🎤 Record Voice Audio", key="cta_rec"):
-            st.session_state.page = "Analyze"
-            st.session_state.preset_sample = None
-            st.rerun()
-
-    # 1-Click Sample Pre-load Buttons
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align: center; color: #94A3B8; font-size: 0.95rem; margin-bottom: 12px;'><strong>Or test instantly with 1-click sample audio clips:</strong></div>", unsafe_allow_html=True)
-
-    s_col1, s_col2 = st.columns(2)
-    with s_col1:
-        if st.button("🧪 Try Sample Real Human Voice", key="sample_real"):
-            st.session_state.page = "Analyze"
-            real_files = list((config.TEST_DIR / "real").glob("*.*"))
-            if real_files:
-                st.session_state.preset_sample = str(real_files[0])
-            st.rerun()
-    with s_col2:
-        if st.button("🧪 Try Sample AI Synthetic Voice", key="sample_fake"):
-            st.session_state.page = "Analyze"
-            fake_files = list((config.TEST_DIR / "fake").glob("*.*"))
-            if fake_files:
-                st.session_state.preset_sample = str(fake_files[0])
+        if st.button("🎤 Record Audio", key="dash_rec"):
+            st.session_state["nav_override"] = "🎙️ Analyze Audio"
             st.rerun()
 
     st.markdown("<br><br>", unsafe_allow_html=True)
 
-    # Feature Cards
-    f1, f2, f3, f4 = st.columns(4)
-    with f1:
+    # 4 Information Cards
+    i1, i2, i3, i4 = st.columns(4)
+    with i1:
         st.markdown("""
-        <div class="feature-item">
-            <div class="feature-icon-box">🎧</div>
-            <div class="feature-title-box">Audio Analysis</div>
-            <div class="feature-desc-box">Analyze speech recordings using acoustic characteristics extracted from the audio.</div>
+        <div class="info-card">
+            <div class="info-icon">🎙️</div>
+            <div class="info-title">Audio Analysis</div>
+            <div class="info-desc">Upload or record speech audio for automated analysis.</div>
         </div>
         """, unsafe_allow_html=True)
-    with f2:
+    with i2:
         st.markdown("""
-        <div class="feature-item">
-            <div class="feature-icon-box">🧠</div>
-            <div class="feature-title-box">AI Detection</div>
-            <div class="feature-desc-box">The existing MFCC + Random Forest model analyzes the uploaded audio.</div>
+        <div class="info-card">
+            <div class="info-icon">🧠</div>
+            <div class="info-title">Acoustic Features</div>
+            <div class="info-desc">The system analyzes MFCC-based acoustic characteristics.</div>
         </div>
         """, unsafe_allow_html=True)
-    with f3:
+    with i3:
         st.markdown("""
-        <div class="feature-item">
-            <div class="feature-icon-box">⚡</div>
-            <div class="feature-title-box">Fast Results</div>
-            <div class="feature-desc-box">Get an accurate detection result within seconds on CPU.</div>
+        <div class="info-card">
+            <div class="info-icon">⚡</div>
+            <div class="info-title">Fast Detection</div>
+            <div class="info-desc">The trained Random Forest model provides CPU-based inference.</div>
         </div>
         """, unsafe_allow_html=True)
-    with f4:
+    with i4:
         st.markdown("""
-        <div class="feature-item">
-            <div class="feature-icon-box">🔒</div>
-            <div class="feature-title-box">Local Processing</div>
-            <div class="feature-desc-box">Audio is processed locally by the application and is not permanently stored.</div>
+        <div class="info-card">
+            <div class="info-icon">🔒</div>
+            <div class="info-title">Privacy Focused</div>
+            <div class="info-desc">Audio is processed through the local application.</div>
         </div>
         """, unsafe_allow_html=True)
 
-    # Stats Strip
+    # Supported Audio Section
     st.markdown("""
-    <div class="stats-strip">
-        <div style="text-align: center;">
-            <div class="stat-val">&lt; 1.5s</div>
-            <div class="stat-lbl">Inference Speed</div>
+    <div class="supported-strip">
+        <div>
+            <span style="color: #94A3B8; font-weight: 600; text-transform: uppercase; font-size: 0.85rem; display: block; margin-bottom: 4px;">Supported Audio</span>
+            <span style="font-weight: 800; font-size: 1.1rem; color: #F8FAFC;">WAV &nbsp;•&nbsp; MP3 &nbsp;•&nbsp; FLAC &nbsp;•&nbsp; OGG &nbsp;•&nbsp; M4A</span>
         </div>
-        <div style="text-align: center;">
-            <div class="stat-val">172-dim</div>
-            <div class="stat-lbl">MFCC Features</div>
-        </div>
-        <div style="text-align: center;">
-            <div class="stat-val">100%</div>
-            <div class="stat-lbl">Local Privacy</div>
+        <div>
+            <span style="color: #94A3B8; font-weight: 600; text-transform: uppercase; font-size: 0.85rem; display: block; margin-bottom: 4px;">Maximum Duration</span>
+            <span style="font-weight: 800; font-size: 1.1rem; color: #38BDF8;">60 Seconds</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
 
 # -------------------------------------------------------------------
-# 2. ANALYZE PAGE
+# PAGE 2: ANALYZE AUDIO
 # -------------------------------------------------------------------
-elif st.session_state.page == "Analyze":
+elif nav_page == "🎙️ Analyze Audio":
     st.markdown("""
     <div style="text-align: center; margin-bottom: 28px;">
-        <h2 style="font-size: 2.4rem; font-weight: 800; margin-bottom: 8px;">Analyze Your Audio</h2>
-        <p style="color: #94A3B8; font-size: 1.1rem;">Upload a recording or record your voice to check its authenticity.</p>
+        <h2 style="font-size: 2.3rem; font-weight: 800; margin-bottom: 8px;">Audio Analysis</h2>
+        <p style="color: #94A3B8; font-size: 1.1rem;">Upload or record speech audio for forensic analysis.</p>
     </div>
     """, unsafe_allow_html=True)
+
+    input_segmented = st.radio(
+        "Input Method:",
+        ["Upload Audio", "Record Audio"],
+        horizontal=True,
+        label_visibility="collapsed"
+    )
 
     audio_file_buffer = None
     audio_filename = "sample.wav"
 
-    # Check if pre-loaded sample was triggered
-    preset_path = st.session_state.preset_sample
-
-    if preset_path and os.path.exists(preset_path):
-        st.info(f"📁 Pre-loaded sample selected: `{Path(preset_path).name}`")
-        with open(preset_path, "rb") as f:
-            audio_bytes_data = f.read()
-            audio_file_buffer = io.BytesIO(audio_bytes_data)
-            audio_filename = Path(preset_path).name
-    else:
-        input_mode = st.radio(
-            "Choose Input Method:",
-            ["Upload Audio", "Record Audio"],
-            horizontal=True,
-            label_visibility="collapsed"
+    if input_segmented == "Upload Audio":
+        audio_file_buffer = st.file_uploader(
+            "🎙️ Drop your audio file here or browse files from your computer",
+            type=["wav", "mp3", "flac", "ogg", "m4a"],
+            help="WAV • MP3 • FLAC • OGG • M4A | Maximum duration: 60 seconds"
         )
-
-        if input_mode == "Upload Audio":
-            audio_file_buffer = st.file_uploader(
-                "🎵 Drop your audio here or Browse Files",
-                type=["wav", "mp3", "flac", "ogg", "m4a"],
-                help="Supported formats: WAV • MP3 • FLAC • OGG • M4A | Maximum length: 60 seconds",
-                key=f"uploader_{st.session_state.reset_id}"
-            )
+        if audio_file_buffer:
+            audio_filename = audio_file_buffer.name
+    else:
+        st.markdown("### Record Your Voice")
+        if hasattr(st, "audio_input"):
+            audio_file_buffer = st.audio_input("🎙️ Ready to Record:")
             if audio_file_buffer:
-                audio_filename = audio_file_buffer.name
+                audio_filename = "recorded_voice.wav"
         else:
-            if hasattr(st, "audio_input"):
-                audio_file_buffer = st.audio_input("🎤 Record Audio:")
-                if audio_file_buffer:
-                    audio_filename = "recorded_voice.wav"
-            else:
-                st.warning("Live audio recording is not supported in this environment. Please use File Upload.")
+            st.warning("Live audio recording is not supported in this environment. Please use Upload Audio.")
 
     if audio_file_buffer is not None:
         st.markdown("---")
-        st.markdown("### Audio Preview")
+        st.markdown("### Selected Audio")
 
-        col_player, col_meta = st.columns([2, 1])
-        audio_bytes_content = audio_file_buffer.getvalue() if hasattr(audio_file_buffer, "getvalue") else audio_file_buffer.read()
+        audio_bytes_data = audio_file_buffer.getvalue() if hasattr(audio_file_buffer, "getvalue") else audio_file_buffer.read()
+        file_size_kb = len(audio_bytes_data) / 1024
+        file_fmt = Path(audio_filename).suffix.upper().replace(".", "") or "WAV"
 
-        with col_player:
-            st.audio(audio_bytes_content, format="audio/wav")
-        with col_meta:
-            file_size_kb = len(audio_bytes_content) / 1024
-            file_fmt = Path(audio_filename).suffix.upper().replace(".", "") or "WAV"
-            st.markdown(f"**File Name:** `{audio_filename}`")
+        col_p, col_m = st.columns([2, 1])
+        with col_p:
+            st.audio(audio_bytes_data, format="audio/wav")
+        with col_m:
+            st.markdown(f"**Filename:** `{audio_filename}`")
             st.markdown(f"**Format:** `{file_fmt}`")
             st.markdown(f"**File Size:** `{file_size_kb:.1f} KB`")
 
-        if st.button("🔍 Analyze Audio", type="primary", key="btn_run"):
-            # Polished Animated Progress Loader
+        if st.button("🔍 Analyze Audio", type="primary", key="btn_run_forensic"):
+            # Polished Processing Stages Animation
             status_box = st.empty()
 
-            status_box.markdown("◉ **Analyzing Audio...**")
+            status_box.markdown("⏳ **Analyzing Audio...**\n*Processing your audio through the detection engine...*")
             time.sleep(0.3)
-            status_box.markdown("✓ **Processing 16 kHz Mono Waveform**")
-            time.sleep(0.3)
-            status_box.markdown("✓ **Extracting Mel-Frequency Cepstral Coefficients (MFCC)**")
-            time.sleep(0.3)
-            status_box.markdown("✓ **Running Random Forest Deepfake Classifier**")
+            status_box.markdown("✓ **Audio loaded**")
             time.sleep(0.2)
-            status_box.markdown("✓ **Preparing Verdict & Confidence Metrics**")
+            status_box.markdown("✓ **Audio preprocessing**")
+            time.sleep(0.2)
+            status_box.markdown("✓ **MFCC feature extraction**")
+            time.sleep(0.3)
+            status_box.markdown("✓ **Random Forest classification**")
+            time.sleep(0.2)
+            status_box.markdown("✓ **Probability calculation**")
+            time.sleep(0.2)
+            status_box.markdown("✓ **Generating analysis result**")
             time.sleep(0.2)
 
             try:
-                # Save temporary file for model prediction
+                # Save temp file for prediction
                 suffix = Path(audio_filename).suffix or ".wav"
                 with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                    tmp.write(audio_bytes_content)
+                    tmp.write(audio_bytes_data)
                     temp_path = tmp.name
 
-                # Run existing trained MFCC model inference
+                # Execute existing MFCC Random Forest prediction pipeline
                 result = predict_audio_file(temp_path, backend="mfcc")
 
-                # Remove temporary file
+                # Remove temp file
                 try:
                     os.remove(temp_path)
                 except Exception:
@@ -555,210 +502,234 @@ elif st.session_state.page == "Analyze":
 
                 status_box.empty()
 
-                # MAIN RESULT DISPLAY CARD
+                # RESULT SECTION
+                st.markdown("### Analysis Complete")
+
                 pred = result["prediction"]
                 fake_p = result["fake_probability"]
                 real_p = result["real_probability"]
                 conf = result["confidence"]
                 is_uncertain = result["is_uncertain"]
 
-                st.markdown("<br>", unsafe_allow_html=True)
-
                 if is_uncertain:
                     st.markdown("""
-                    <div class="result-uncertain-card">
+                    <div class="result-card-uncertain">
                         <div class="result-symbol">⚠️</div>
-                        <div class="result-main-header" style="color: #F59E0B;">RESULT INCONCLUSIVE</div>
-                        <div class="result-sub-header">The acoustic characteristics are close to the decision threshold. This audio should be treated as uncertain.</div>
+                        <div class="result-h1" style="color: #F59E0B;">RESULT INCONCLUSIVE</div>
+                        <div class="result-p">The acoustic characteristics are close to the decision threshold. This audio should be treated as uncertain.</div>
                     </div>
                     """, unsafe_allow_html=True)
                 elif pred == "REAL":
                     st.markdown("""
-                    <div class="result-real-card">
-                        <div class="result-symbol">✓</div>
-                        <div class="result-main-header" style="color: #10B981;">REAL AUDIO</div>
-                        <div class="result-sub-header">This audio appears to be genuine human speech.</div>
+                    <div class="result-card-real">
+                        <div class="result-symbol">🟢</div>
+                        <div class="result-h1" style="color: #10B981;">REAL AUDIO</div>
+                        <div class="result-p">The audio is classified as likely genuine human speech.</div>
                     </div>
                     """, unsafe_allow_html=True)
                 else:
                     st.markdown("""
-                    <div class="result-fake-card">
-                        <div class="result-symbol">⚠</div>
-                        <div class="result-main-header" style="color: #EF4444;">AI-GENERATED AUDIO</div>
-                        <div class="result-sub-header">This audio shows characteristics associated with synthetic speech.</div>
+                    <div class="result-card-fake">
+                        <div class="result-symbol">🔴</div>
+                        <div class="result-h1" style="color: #EF4444;">AI-GENERATED AUDIO</div>
+                        <div class="result-p">The audio is classified as likely synthetic or AI-generated speech.</div>
                     </div>
                     """, unsafe_allow_html=True)
 
-                # DETECTION CONFIDENCE DISPLAY
+                # CONFIDENCE DISPLAY
                 st.markdown("### Detection Confidence")
                 st.markdown(f"<h1 style='text-align: center; color: #38BDF8; font-size: 3.8rem; font-weight: 900; margin-bottom: 8px;'>{conf:.1f}%</h1>", unsafe_allow_html=True)
                 st.progress(conf / 100.0)
 
-                b1, b2 = st.columns(2)
-                with b1:
-                    st.markdown(f"**REAL — {real_p:.1f}%**")
-                with b2:
-                    st.markdown(f"<div style='text-align: right;'><strong>FAKE — {fake_p:.1f}%</strong></div>", unsafe_allow_html=True)
+                p1, p2 = st.columns(2)
+                with p1:
+                    st.markdown(f"**REAL:** `{real_p:.1f}%`")
+                with p2:
+                    st.markdown(f"<div style='text-align: right;'><strong>AI-GENERATED:</strong> <code>{fake_p:.1f}%</code></div>", unsafe_allow_html=True)
 
                 st.markdown("<br>", unsafe_allow_html=True)
 
-                # SUMMARY METRIC CARDS (3 CARDS)
-                s1, s2, s3 = st.columns(3)
-                with s1:
+                # ANALYSIS DETAILS GRID (5 CARDS)
+                g1, g2, g3, g4, g5 = st.columns(5)
+                with g1:
                     st.markdown(f"""
-                    <div class="metric-summary-card">
-                        <div class="metric-summary-val" style="color: {'#10B981' if pred=='REAL' else '#EF4444'};">{'REAL' if pred=='REAL' else 'AI-GENERATED'}</div>
-                        <div class="metric-summary-lbl">Classification</div>
+                    <div class="grid-metric-card">
+                        <div class="grid-metric-val" style="color: {'#10B981' if pred=='REAL' else '#EF4444'};">{'REAL' if pred=='REAL' else 'AI-GENERATED'}</div>
+                        <div class="grid-metric-lbl">Prediction</div>
                     </div>
                     """, unsafe_allow_html=True)
-                with s2:
+                with g2:
                     st.markdown(f"""
-                    <div class="metric-summary-card">
-                        <div class="metric-summary-val">{conf:.1f}%</div>
-                        <div class="metric-summary-lbl">Confidence</div>
+                    <div class="grid-metric-card">
+                        <div class="grid-metric-val">{conf:.1f}%</div>
+                        <div class="grid-metric-lbl">Confidence</div>
                     </div>
                     """, unsafe_allow_html=True)
-                with s3:
+                with g3:
                     st.markdown(f"""
-                    <div class="metric-summary-card">
-                        <div class="metric-summary-val" style="color: #A855F7;">{result['audio_duration_sec']:.2f}s</div>
-                        <div class="metric-summary-lbl">Audio Duration</div>
+                    <div class="grid-metric-card">
+                        <div class="grid-metric-val" style="color: #A855F7;">{result['audio_duration_sec']:.2f} sec</div>
+                        <div class="grid-metric-lbl">Audio Duration</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with g4:
+                    st.markdown(f"""
+                    <div class="grid-metric-card">
+                        <div class="grid-metric-val" style="color: #F59E0B;">{result['processing_time_sec']:.2f} sec</div>
+                        <div class="grid-metric-lbl">Processing Time</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with g5:
+                    st.markdown(f"""
+                    <div class="grid-metric-card">
+                        <div class="grid-metric-val" style="font-size: 0.95rem; line-height: 1.8;">MFCC + Random Forest</div>
+                        <div class="grid-metric-lbl">Detection Method</div>
                     </div>
                     """, unsafe_allow_html=True)
 
                 st.markdown("<br>", unsafe_allow_html=True)
 
-                # AUDIO INSIGHTS (Waveform, MFCC, Mel-Spectrogram)
-                with st.expander("🔊 Audio Insights (Waveform, MFCC, Mel-Spectrogram)"):
-                    waveform, sr, _ = load_and_preprocess_audio(audio_bytes_content)
+                # ACOUSTIC ANALYSIS VISUALIZATIONS
+                st.markdown("# Acoustic Analysis")
+                waveform, sr, _ = load_and_preprocess_audio(audio_bytes_data)
 
-                    plt.style.use('dark_background')
-                    v1, v2, v3 = st.tabs(["Waveform", "MFCC", "Mel-Spectrogram"])
+                plt.style.use('dark_background')
+                t1, t2, t3 = st.tabs(["Waveform", "MFCC", "Mel-Spectrogram"])
 
-                    with v1:
-                        fig, ax = plt.subplots(figsize=(9, 2.8))
-                        fig.patch.set_facecolor('#151D2A')
-                        ax.set_facecolor('#0B0F19')
-                        time_axis = np.linspace(0, len(waveform) / sr, num=len(waveform))
-                        ax.plot(time_axis, waveform, color="#38BDF8", alpha=0.85, linewidth=0.8)
-                        ax.set_xlabel("Time (seconds)", color="#94A3B8")
-                        ax.set_ylabel("Amplitude", color="#94A3B8")
-                        ax.set_title("Audio Amplitude Waveform", color="#F8FAFC")
-                        ax.grid(True, color="#1E293B", alpha=0.5)
-                        plt.tight_layout()
-                        st.pyplot(fig)
+                with t1:
+                    fig, ax = plt.subplots(figsize=(9, 2.8))
+                    fig.patch.set_facecolor('#151D2A')
+                    ax.set_facecolor('#0B0F19')
+                    time_axis = np.linspace(0, len(waveform) / sr, num=len(waveform))
+                    ax.plot(time_axis, waveform, color="#38BDF8", alpha=0.85, linewidth=0.8)
+                    ax.set_xlabel("Time (seconds)", color="#94A3B8")
+                    ax.set_ylabel("Amplitude", color="#94A3B8")
+                    ax.set_title("Audio Amplitude Waveform", color="#F8FAFC")
+                    ax.grid(True, color="#1E293B", alpha=0.5)
+                    plt.tight_layout()
+                    st.pyplot(fig)
 
-                    with v2:
-                        mfccs = compute_mfcc_visualization(waveform, sr=sr)
-                        fig, ax = plt.subplots(figsize=(9, 3))
-                        fig.patch.set_facecolor('#151D2A')
-                        ax.set_facecolor('#0B0F19')
-                        img = ax.imshow(mfccs, aspect="auto", origin="lower", cmap="viridis")
-                        fig.colorbar(img, ax=ax)
-                        ax.set_title("MFCC Feature Heatmap", color="#F8FAFC")
-                        ax.set_xlabel("Time Frames", color="#94A3B8")
-                        ax.set_ylabel("MFCC Coefficients", color="#94A3B8")
-                        plt.tight_layout()
-                        st.pyplot(fig)
+                with t2:
+                    mfccs = compute_mfcc_visualization(waveform, sr=sr)
+                    fig, ax = plt.subplots(figsize=(9, 3))
+                    fig.patch.set_facecolor('#151D2A')
+                    ax.set_facecolor('#0B0F19')
+                    img = ax.imshow(mfccs, aspect="auto", origin="lower", cmap="viridis")
+                    fig.colorbar(img, ax=ax)
+                    ax.set_title("MFCC Feature Heatmap", color="#F8FAFC")
+                    ax.set_xlabel("Time Frames", color="#94A3B8")
+                    ax.set_ylabel("MFCC Coefficients", color="#94A3B8")
+                    plt.tight_layout()
+                    st.pyplot(fig)
 
-                    with v3:
-                        mel_db = compute_mel_spectrogram(waveform, sr=sr)
-                        fig, ax = plt.subplots(figsize=(9, 3))
-                        fig.patch.set_facecolor('#151D2A')
-                        ax.set_facecolor('#0B0F19')
-                        img = ax.imshow(mel_db, aspect="auto", origin="lower", cmap="magma")
-                        fig.colorbar(img, ax=ax, format="%+2.0f dB")
-                        ax.set_title("Log Mel-Spectrogram Frequency Spectrum", color="#F8FAFC")
-                        ax.set_xlabel("Time Frames", color="#94A3B8")
-                        ax.set_ylabel("Mel Frequency Bands", color="#94A3B8")
-                        plt.tight_layout()
-                        st.pyplot(fig)
+                with t3:
+                    mel_db = compute_mel_spectrogram(waveform, sr=sr)
+                    fig, ax = plt.subplots(figsize=(9, 3))
+                    fig.patch.set_facecolor('#151D2A')
+                    ax.set_facecolor('#0B0F19')
+                    img = ax.imshow(mel_db, aspect="auto", origin="lower", cmap="magma")
+                    fig.colorbar(img, ax=ax, format="%+2.0f dB")
+                    ax.set_title("Log Mel-Spectrogram Frequency Spectrum", color="#F8FAFC")
+                    ax.set_xlabel("Time Frames", color="#94A3B8")
+                    ax.set_ylabel("Mel Frequency Bands", color="#94A3B8")
+                    plt.tight_layout()
+                    st.pyplot(fig)
 
-                # SEGMENT ANALYSIS FOR LONG AUDIO
+                # OPTIONAL SEGMENT ANALYSIS (If audio > 4 seconds)
                 if len(result["windows"]) > 1:
-                    with st.expander("⏱️ Segment Analysis"):
-                        win_df = pd.DataFrame(result["windows"])
-                        win_df = win_df.rename(columns={
-                            "start_sec": "Start (s)",
-                            "end_sec": "End (s)",
-                            "label": "Prediction",
-                            "fake_prob": "Fake Prob (%)",
-                            "real_prob": "Real Prob (%)"
-                        })
-                        st.dataframe(win_df[["Start (s)", "End (s)", "Prediction", "Fake Prob (%)"]], use_container_width=True)
+                    st.markdown("### Segment Analysis")
+                    win_df = pd.DataFrame(result["windows"])
+                    win_df = win_df.rename(columns={
+                        "start_sec": "Start (s)",
+                        "end_sec": "End (s)",
+                        "label": "Classification",
+                        "fake_prob": "AI Probability (%)",
+                        "real_prob": "Real Prob (%)"
+                    })
+                    st.dataframe(win_df[["Start (s)", "End (s)", "Classification", "AI Probability (%)"]], use_container_width=True)
 
-                        fig, ax = plt.subplots(figsize=(8, 3))
-                        fig.patch.set_facecolor('#151D2A')
-                        ax.set_facecolor('#0B0F19')
+                    fig, ax = plt.subplots(figsize=(8, 2.8))
+                    fig.patch.set_facecolor('#151D2A')
+                    ax.set_facecolor('#0B0F19')
 
-                        times = [(w["start_sec"] + w["end_sec"]) / 2 for w in result["windows"]]
-                        probs = [w["fake_prob"] for w in result["windows"]]
+                    times = [(w["start_sec"] + w["end_sec"]) / 2 for w in result["windows"]]
+                    probs = [w["fake_prob"] for w in result["windows"]]
 
-                        ax.plot(times, probs, marker="o", color="#EF4444" if pred == "FAKE" else "#10B981", linewidth=2.5)
-                        ax.axhline(result['decision_threshold'] * 100, color="#64748B", linestyle="--", label="Threshold")
-                        ax.set_ylim([0, 100])
-                        ax.set_xlabel("Time (seconds)", color="#94A3B8")
-                        ax.set_ylabel("Fake Probability (%)", color="#94A3B8")
-                        ax.tick_params(colors="#94A3B8")
-                        ax.set_title("AI Probability Over Time", color="#F8FAFC", fontsize=11, fontweight="bold")
-                        ax.grid(True, color="#1E293B", alpha=0.5)
-                        plt.tight_layout()
-                        st.pyplot(fig)
+                    ax.plot(times, probs, marker="o", color="#EF4444" if pred == "FAKE" else "#10B981", linewidth=2.5)
+                    ax.axhline(result['decision_threshold'] * 100, color="#64748B", linestyle="--", label="Threshold")
+                    ax.set_ylim([0, 100])
+                    ax.set_xlabel("Time (seconds)", color="#94A3B8")
+                    ax.set_ylabel("AI Probability (%)", color="#94A3B8")
+                    ax.tick_params(colors="#94A3B8")
+                    ax.set_title("AI Probability Over Time", color="#F8FAFC", fontsize=11, fontweight="bold")
+                    ax.grid(True, color="#1E293B", alpha=0.5)
+                    plt.tight_layout()
+                    st.pyplot(fig)
 
-                # ANALYZE ANOTHER AUDIO BUTTON
+                # RESULT ACTIONS
                 st.markdown("---")
-                if st.button("🔄 Analyze Another Audio", key="btn_reset_all"):
-                    st.session_state.reset_id += 1
-                    st.session_state.preset_sample = None
-                    st.rerun()
+                act1, act2 = st.columns(2)
+                with act1:
+                    if st.button("🔄 Analyze Another Audio", key="btn_reset_forensic"):
+                        st.rerun()
+
+                with act2:
+                    report_text = f"""==================================================
+AUDIOGUARD FORENSIC ANALYSIS REPORT
+==================================================
+Analysis Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}
+Audio Filename:     {audio_filename}
+Audio Duration:     {result['audio_duration_sec']:.2f} seconds
+
+CLASSIFICATION:     {result['prediction']}
+Confidence Score:   {result['confidence']:.2f}%
+REAL Probability:   {result['real_probability']:.2f}%
+AI Probability:     {result['fake_probability']:.2f}%
+
+Detection Method:   MFCC + Random Forest Classifier
+Processing Time:    {result['processing_time_sec']:.2f} seconds
+==================================================
+"""
+                    st.download_button(
+                        label="📄 Download Report",
+                        data=report_text,
+                        file_name=f"audioguard_report_{Path(audio_filename).stem}.txt",
+                        mime="text/plain"
+                    )
+
+                # DISCLAIMER
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.caption("🔒 **Important:** AudioGuard provides an automated machine-learning prediction based on acoustic characteristics. The result should be treated as an analytical indicator and not as absolute proof of authenticity.")
 
             except Exception as e:
                 st.error("Unable to Analyze Audio. Please upload a valid supported audio file and try again.")
 
 
 # -------------------------------------------------------------------
-# 3. ABOUT PAGE
+# PAGE 3: ABOUT
 # -------------------------------------------------------------------
-elif st.session_state.page == "About":
+elif nav_page == "ℹ️ About":
     st.markdown("""
     <div style="margin-bottom: 28px;">
         <h2 style="font-size: 2.3rem; font-weight: 800; margin-bottom: 8px;">About AudioGuard</h2>
-        <p style="color: #94A3B8; font-size: 1.1rem;">AudioGuard analyzes speech recordings using acoustic characteristics extracted from audio and an existing trained machine-learning model to identify whether the audio appears to be genuine or AI-generated.</p>
+        <p style="color: #94A3B8; font-size: 1.1rem;">AudioGuard is an AI-powered audio forensic application designed to analyze speech recordings and identify characteristics associated with synthetic or AI-generated speech.</p>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("""
-    ### Processing Pipeline
+    ### Pipeline Overview
 
     ```text
-    Audio Input
-        ↓
-    Audio Preprocessing (16 kHz Mono)
-        ↓
-    MFCC Feature Extraction (172-dim Stats)
-        ↓
-    Random Forest Classifier
-        ↓
-    REAL / AI-GENERATED PREDICTION
+    Audio → Preprocessing → MFCC Features → Random Forest → Prediction
     ```
 
     ---
 
-    ### Technology Card
+    ### Detection Technology
 
     - **Detection Method:** MFCC + Random Forest
     - **Input:** Speech Audio
+    - **Output:** REAL / AI-GENERATED
+    - **Processing:** Local CPU-based inference
     - **Supported Formats:** WAV • MP3 • FLAC • OGG • M4A
-    - **Model Status:** ✓ Trained Model Active
     """)
-
-
-# -------------------------------------------------------------------
-# FOOTER
-# -------------------------------------------------------------------
-st.markdown("""
-<div class="footer-text">
-    <strong>AudioGuard</strong> — AI-Powered Audio Deepfake Detection<br>
-    Supported formats: WAV • MP3 • FLAC • OGG • M4A
-</div>
-""", unsafe_allow_html=True)
