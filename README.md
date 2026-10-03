@@ -1,250 +1,147 @@
-# Audio Deepfake Detection System
+# 🎙️ AudioGuard — AI Audio Deepfake Detection
 
-A complete, production-grade **Audio-Only AI Deepfake Detection System** that analyzes uploaded or recorded speech audio to determine whether it is **REAL** (genuine human speech) or **FAKE** (AI-generated, synthetic, or voice-cloned speech).
+> A modern web application for detecting whether speech audio appears to be genuine human speech or AI-generated.
 
-The application runs locally on standard laptop hardware (**CPU-only**, 8 GB RAM minimum) using PyTorch, Hugging Face Transformers (**Wav2Vec 2.0**), Librosa, and Streamlit.
-
----
-
-## Key Features
-
-- **Primary Deep Learning Backbone:** Pretrained Wav2Vec 2.0 (`facebook/wav2vec2-base`) for temporal waveform feature representations.
-- **CPU Fallback Backend:** Handcrafted audio feature backend (MFCCs, Mel-Spectrogram stats, Spectral Centroid, Bandwidth, Rolloff, ZCR, RMS Energy, Spectral Flatness) with Scikit-Learn classifiers.
-- **16 kHz Mono Audio Pipeline:** Handles audio input at 8 kHz, 16 kHz, 22.05 kHz, 44.1 kHz, and 48 kHz across WAV, MP3, FLAC, OGG, and M4A formats.
-- **Sliding Window Analysis:** 4-second analysis window with 2-second hop step for files up to 60 seconds.
-- **Leak-Free Dataset Pipeline:** Automatic downloader for the verified Hugging Face dataset (`garystafford/deepfake-audio-detection`), SHA-256 exact duplicate file removal, and stratified 70% Train / 15% Validation / 15% Test split.
-- **CPU Optimization:** Backbone freezing, feature caching, small batch size, early stopping, and zero unnecessary RAM consumption.
-- **Interactive Web App:** 4-tab Streamlit dashboard with real-time audio playback, visual badges, window-level risk charts, acoustic diagnostic visualizations (Waveform, Mel-Spectrogram, MFCC), performance metrics, and dataset inspection.
+AudioGuard is an audio-only machine learning application designed to analyze speech recordings and identify acoustic characteristics associated with synthetic or AI-generated speech. The system extracts acoustic features using **Mel-Frequency Cepstral Coefficients (MFCCs)** and classifies the audio using a trained **Random Forest** model.
 
 ---
 
-## System Architecture
+## 📋 System Pipeline
 
 ```text
-                     Raw Audio File / Microphone Input
-                                    ↓
-                     Audio Decoding & Validation
-                                    ↓
-                     Resampling to 16,000 Hz Mono
-                                    ↓
-                    Peak Amplitude Normalization
-                                    ↓
-                 Sliding Windowing (4.0s / 2.0s Hop)
-                                    ↓
-           ┌─────────────────────────────────────────────────┐
-           │                                                 │
-  Wav2Vec 2.0 Backbone                           MFCC Feature Backend
- (facebook/wav2vec2-base)                     (172-dim Spectral Stats)
-           │                                                 │
-  Temporal Mean Pooling                               Scalers
-  (768-dim Embedding)                                        │
-           │                                          Classifiers
-  Classification Head                             (RandomForest / SVM)
- (PyTorch Linear / ReLU)                                     │
-           │                                                 │
-           └────────────────────────┬────────────────────────┘
-                                    ↓
-               REAL / FAKE Probability & Confidence Score
-                                    ↓
-              Decision Threshold & Uncertainty Evaluation
+Audio Input (WAV, MP3, FLAC, OGG, M4A)
+                   ↓
+Audio Preprocessing & 16 kHz Mono Standardization
+                   ↓
+MFCC Feature Extraction (172-dim Spectral Statistics)
+                   ↓
+Trained Random Forest Classification Model
+                   ↓
+REAL / AI-GENERATED Prediction & Confidence Score
 ```
 
 ---
 
-## Project Structure
+## ✨ Key Features
 
-```text
-audio-deepfake-detection/
-│
-├── app.py                   # Streamlit Web Application (4 Tabs)
-├── train.py                 # Training script (Wav2Vec 2.0 & MFCC backends)
-├── predict.py               # CLI prediction interface
-├── download_dataset.py      # Automated HF dataset downloader & splitter
-├── preprocess.py            # Dataset validation, SHA-256 deduplication, 70/15/15 split
-├── audio_utils.py           # Audio loading, resampling, normalization, windowing
-├── features.py              # Wav2Vec 2.0 and MFCC feature extraction & caching
-├── model.py                 # PyTorch classification head & Scikit-Learn models
-├── evaluate.py              # Performance evaluation, ROC curves, confusion matrix
-├── config.py                # System configuration parameters
-├── requirements.txt         # Required dependencies
-├── README.md                # Documentation
-│
-├── data/
-│   ├── raw/                 # Raw audio files (real / fake)
-│   └── processed/           # Split dataset (train / valid / test)
-│
-├── features/                # Cached feature vectors (.pt / .joblib)
-├── models/                  # Saved model checkpoints & config.json
-└── results/                 # Evaluation plots (confusion_matrix.png, roc_curve.png, metrics.json)
-```
+- 🎙️ **Audio Detection:** Upload speech recordings or record voice audio directly to detect synthetic or voice-cloned speech.
+- 🧠 **MFCC Feature Extraction:** Captures 172-dimensional statistical acoustic descriptors (MFCCs, Delta MFCCs, Mel-Spectrogram stats, Spectral Centroid, Bandwidth, Rolloff, ZCR, RMS Energy, and Spectral Flatness).
+- ⚡ **Random Forest Classifier:** Fast CPU-based machine learning inference with real-time prediction output.
+- 📊 **Confidence & Probability Breakdown:** Displays model detection confidence percentage along with side-by-side REAL and FAKE class probabilities.
+- 🔊 **Acoustic Visualizations:** Renders detailed Waveform, MFCC Heatmap, and Mel-Spectrogram plots for acoustic inspection.
+- ⏱️ **Segment Analysis:** Divides audio longer than 4 seconds into sliding windows to analyze segment-by-segment risk and plot an *AI Probability Over Time* chart.
+- 🔒 **Local Privacy-First Execution:** Audio is processed locally on your system and is not uploaded to external AI APIs or permanently stored.
+- 📄 **Report Export:** Generate and download text summary reports for audio analysis results.
 
 ---
 
-## Installation & Setup (Windows)
+## 🛠️ Supported Formats & System Requirements
 
-### 1. Create a Python Virtual Environment
+- **Supported Audio Formats:** WAV, MP3, FLAC, OGG, M4A
+- **Maximum Audio Duration:** 60 seconds
+- **Audio Standardization:** 16,000 Hz, Mono, Float32 Peak-Normalized Waveforms
+- **Execution Requirements:** Standard Laptop CPU (Python 3.10 / 3.11 / 3.12, 8 GB RAM min, Windows / macOS / Linux)
 
+---
+
+## 🚀 Installation & Setup
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/ashashik2005-creator/AudioGuard.git
+cd AudioGuard
+```
+
+### 2. Create and Activate Virtual Environment
+
+**Windows:**
 ```bash
 python -m venv venv
-```
-
-### 2. Activate the Virtual Environment
-
-On Windows (Command Prompt / PowerShell):
-
-```bash
 venv\Scripts\activate
 ```
 
-### 3. Upgrade Pip & Install Dependencies
+**macOS / Linux:**
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
 
 ```bash
-python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
 ---
 
-## Dataset Management
+## 📁 Dataset Preparation
 
-The system automatically downloads the publicly available Hugging Face dataset:
-`garystafford/deepfake-audio-detection` (933 REAL, 933 FAKE 16 kHz FLAC samples generated via ElevenLabs, Kokoro, Hume AI, Speechify, Amazon Polly, Luvvoice).
+AudioGuard uses the public Hugging Face dataset [`garystafford/deepfake-audio-detection`](https://huggingface.co/datasets/garystafford/deepfake-audio-detection).
 
-### Download & Split Dataset
+To download, validate, deduplicate via SHA-256 hashing, and create a 70% Train / 15% Validation / 15% Test split:
 
 ```bash
 python download_dataset.py --max-per-class 100
 ```
 
-To control dataset size:
-
-```bash
-# 250 samples per class
-python download_dataset.py --max-per-class 250
-
-# 500 samples per class
-python download_dataset.py --max-per-class 500
-
-# Full dataset (900+ per class)
-python download_dataset.py --max-per-class 900
-```
-
-### Custom Dataset Support
-
-Place your custom audio files in:
-
-```text
-data/raw/
-├── real/   # (.wav, .mp3, .flac, .ogg, .m4a)
-└── fake/   # (.wav, .mp3, .flac, .ogg, .m4a)
-```
-
-Then run dataset validation and splitting:
-
-```bash
-python preprocess.py
-```
+*Note: You can control sample size with `--max-per-class` (e.g. 100, 250, 500, 900).*
 
 ---
 
-## Model Training
+## 🏋️ Model Training
 
-### Train Wav2Vec 2.0 Classifier (Default)
-
-```bash
-python train.py --backend wav2vec
-```
-
-### Train MFCC Fallback Model
+To train the Random Forest model on the extracted MFCC features:
 
 ```bash
 python train.py --backend mfcc
 ```
 
-Training outputs are saved to `models/`:
-- `models/wav2vec_classifier.pt`
-- `models/mfcc_model.joblib`
-- `models/config.json`
-- `results/metrics.json`, `results/confusion_matrix.png`, `results/roc_curve.png`
+The trained model checkpoint will be saved in `models/mfcc_model.joblib` and configured in `models/config.json`.
 
 ---
 
-## Command-Line Prediction
+## 💻 Command-Line Prediction
 
-Run deepfake analysis on any speech audio file:
+Run deepfake analysis on any audio file via CLI:
 
 ```bash
-python predict.py --file sample.wav
+python predict.py --file data/processed/test/fake/fake_0008.flac
 ```
 
 ### Example CLI Output:
 
 ```text
 ==================================================
-Audio file: sample.wav
+Audio file: data\processed\test\fake\fake_0008.flac
 --------------------------------------------------
 
 Prediction: FAKE
 
-Fake probability: 99.40%
-Real probability: 0.60%
+Fake probability: 80.00%
+Real probability: 20.00%
 
-Confidence:       99.40%
+Confidence:       80.00%
 
-Processing time:  2.92 seconds
+Processing time:  1.27 seconds
 ==================================================
-```
-
-If score is close to decision threshold (uncertainty margin ±0.05):
-
-```text
-Result is uncertain.
-The audio should be treated as inconclusive.
 ```
 
 ---
 
-## Streamlit Web Application
+## 🌐 Running the Web Application
 
-Launch the interactive web application:
+Launch the interactive web interface:
 
 ```bash
 streamlit run app.py
 ```
 
-### Application Tabs:
-1. **Audio Detection:** Upload audio or record live voice, view real/fake badges, confidence metrics, long audio window breakdown graphs, and diagnostic acoustic visualizations (Waveform, Mel-Spectrogram, MFCC).
-2. **Model Performance:** Inspect test accuracy, precision, recall, F1-score, ROC-AUC curve, confusion matrix, and model comparison table.
-3. **Dataset:** View dataset split statistics, total sample counts, and listen to dataset sample clips.
-4. **About:** Learn how speech synthesis deepfakes work, system pipeline explanation, 16 kHz mono standardization, and usage limitations.
+Access the application in your browser at:
+`http://localhost:8501`
 
 ---
 
-## CPU Optimization Strategy
+## 📄 License & Disclaimer
 
-To ensure fluid execution on standard laptop CPUs without GPU requirements:
-1. **Backbone Freezing:** The 95M-parameter Wav2Vec 2.0 transformer weights are frozen (`requires_grad=False`). Only a lightweight linear classification head is trained.
-2. **Feature Caching:** Extracted 768-dimensional Wav2Vec temporal embeddings are computed once and stored in `features/`. Subsequent training runs take less than 2 seconds.
-3. **Incremental Preprocessing:** Audio files are loaded and resampled on demand rather than loading full datasets into system RAM.
-4. **Early Stopping:** Training monitors validation loss and stops automatically when validation performance plateaus.
-
----
-
-## Model Evaluation Results
-
-Evaluation performed on the unseen test dataset split (15% split):
-
-| Metric | Wav2Vec 2.0 Backend | MFCC Fallback Backend |
-| :--- | :---: | :---: |
-| **Accuracy** | **100.00%** | **100.00%** |
-| **Precision** | **100.00%** | **100.00%** |
-| **Recall** | **100.00%** | **100.00%** |
-| **F1-Score** | **1.0000** | **1.0000** |
-| **ROC-AUC** | **1.0000** | **1.0000** |
-| **Decision Threshold** | 0.30 | 0.36 |
-
----
-
-## License & Disclaimer
-
-This software is for automated speech audio deepfake analysis. Probabilistic detection confidence scores should be treated as automated predictions, not absolute proof of authenticity.
+AudioGuard generates probabilistic automated predictions based on acoustic feature analysis. Detection confidence scores represent statistical model outputs and should be treated as automated indicators rather than absolute proof of authenticity.
