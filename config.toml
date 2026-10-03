@@ -1,0 +1,15 @@
+# Put this file in  <your project>/.streamlit/config.toml
+# It makes Streamlit start in the dark theme, so there is no white flash before the page styles load.
+[theme]
+base = "dark"
+primaryColor = "#6D5EF8"
+backgroundColor = "#080B14"
+secondaryBackgroundColor = "#101827"
+textColor = "#F8FAFC"
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
