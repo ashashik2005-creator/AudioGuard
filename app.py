@@ -927,16 +927,9 @@ elif st.session_state.active_nav == "Audio Analysis":
                     plt.tight_layout()
                     st.pyplot(fig)
 
-                # Result Actions
+                # Result Action
                 st.markdown("<br>", unsafe_allow_html=True)
-                act1, act2 = st.columns(2)
-                with act1:
-                    if st.button("Analyze Another Audio", key="btn_reset_forensic"):
-                        st.session_state.reset_count += 1
-                        st.rerun()
-
-                with act2:
-                    report_text = f"""==================================================
+                report_text = f"""==================================================
 AUDIOGUARD FORENSIC ANALYSIS REPORT
 ==================================================
 Analysis Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}
@@ -952,12 +945,12 @@ Detection Method:   MFCC + Random Forest Classifier
 Processing Time:    {result['processing_time_sec']:.2f} seconds
 ==================================================
 """
-                    st.download_button(
-                        label="Download Analysis Report",
-                        data=report_text,
-                        file_name=f"audioguard_report_{Path(audio_filename).stem}.txt",
-                        mime="text/plain"
-                    )
+                st.download_button(
+                    label="Download Analysis Report",
+                    data=report_text,
+                    file_name=f"audioguard_report_{Path(audio_filename).stem}.txt",
+                    mime="text/plain"
+                )
 
                 # Disclaimer
                 st.markdown("<br>", unsafe_allow_html=True)
