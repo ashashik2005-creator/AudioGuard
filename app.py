@@ -1,6 +1,6 @@
 """
 AUDIOGUARD - AI Audio Forensic Platform
-Commercial-grade AI Audio Deepfake Detection Application
+Production-Quality Commercial AI Audio Deepfake Detection Web Application
 Run with: streamlit run app.py
 """
 
@@ -19,7 +19,7 @@ from predict import predict_audio_file
 from audio_utils import load_and_preprocess_audio, compute_mel_spectrogram, compute_mfcc_visualization
 
 # -------------------------------------------------------------------
-# STREAMLIT PAGE CONFIGURATION & COMMERCIAL SAAS THEME
+# STREAMLIT PAGE CONFIGURATION & ENTERPRISE DARK SAAS THEME
 # -------------------------------------------------------------------
 st.set_page_config(
     page_title="AudioGuard | AI Audio Forensic Platform",
@@ -28,17 +28,18 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for Commercial-Grade AI Audio Forensic Platform (Inspired by AUTHENTICITY.AI)
+# Custom CSS for Commercial AI Audio Forensic Platform
 st.markdown("""
 <style>
-    /* Base Palette & Global Styling */
+    /* Dark Theme Palette (#080B14 Base) */
     .stApp {
-        background-color: #070B14;
+        background-color: #080B14;
+        background-image: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.05) 0%, transparent 75%);
         color: #F8FAFC;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    /* Hide Streamlit Default UI Elements */
+    /* Hide Streamlit Chrome */
     header {visibility: hidden;}
     footer {visibility: hidden;}
     #MainMenu {visibility: hidden;}
@@ -46,15 +47,15 @@ st.markdown("""
     .block-container {
         padding-top: 1.2rem;
         padding-bottom: 3rem;
-        max-width: 1160px;
+        max-width: 1180px;
     }
 
-    /* Fixed Left Sidebar (270px) */
+    /* Fixed Left Sidebar (260px) */
     section[data-testid="stSidebar"] {
         background-color: #0B1220 !important;
         border-right: 1px solid #1D2940 !important;
         padding-top: 1.5rem;
-        width: 270px !important;
+        width: 260px !important;
     }
     .sidebar-brand-wrapper {
         padding: 0 10px 18px 10px;
@@ -62,7 +63,7 @@ st.markdown("""
         margin-bottom: 24px;
     }
     .sidebar-logo-text {
-        font-size: 1.5rem;
+        font-size: 1.45rem;
         font-weight: 800;
         letter-spacing: -0.02em;
         color: #FFFFFF;
@@ -79,10 +80,10 @@ st.markdown("""
         box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
     }
     .sidebar-subtitle-text {
-        font-size: 0.74rem;
+        font-size: 0.72rem;
         color: #94A3B8;
         font-weight: 600;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
         margin-top: 4px;
     }
@@ -96,7 +97,7 @@ st.markdown("""
         margin: 0 12px 10px 12px;
     }
 
-    /* Custom Radio Navigation Pill Items */
+    /* Radio Navigation Pill Items */
     div[data-testid="stSidebar"] div[data-testid="stRadio"] > div {
         display: flex;
         flex-direction: column;
@@ -126,7 +127,7 @@ st.markdown("""
         font-weight: 700;
     }
 
-    /* Sidebar Bottom Status Card */
+    /* Sidebar Bottom Status Box */
     .sidebar-status-box {
         background: #101827;
         border: 1px solid #1D2940;
@@ -193,7 +194,7 @@ st.markdown("""
         font-weight: 600;
     }
 
-    /* Cards & Containers */
+    /* General Cards */
     .info-card {
         background: #101827;
         border: 1px solid #1D2940;
@@ -229,13 +230,15 @@ st.markdown("""
         line-height: 1.55;
     }
 
-    /* Large Hero Section Card */
+    /* Hero Card */
     .hero-card {
         background: linear-gradient(135deg, #101827 0%, #0B1220 100%);
         border: 1px solid #1D2940;
         border-radius: 20px;
         padding: 38px 34px;
         margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     }
     .hero-pill-badge {
@@ -264,32 +267,67 @@ st.markdown("""
         color: #94A3B8;
         line-height: 1.6;
         margin-bottom: 26px;
-        max-width: 820px;
     }
 
-    /* Compact Metrics & Information Badges */
-    .compact-metric-card {
+    /* Hero Abstract Waveform Graphic */
+    .hero-wave-graphic {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        height: 60px;
+        position: absolute;
+        right: 40px;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0.85;
+    }
+    .hero-wave-bar {
+        width: 4px;
+        background: linear-gradient(180deg, #6366F1 0%, #38BDF8 100%);
+        border-radius: 2px;
+        animation: wavePulse 1.4s ease-in-out infinite alternate;
+    }
+    .hero-wave-bar:nth-child(1) { height: 20px; animation-delay: 0.1s; }
+    .hero-wave-bar:nth-child(2) { height: 45px; animation-delay: 0.3s; }
+    .hero-wave-bar:nth-child(3) { height: 30px; animation-delay: 0.2s; }
+    .hero-wave-bar:nth-child(4) { height: 55px; animation-delay: 0.4s; }
+    .hero-wave-bar:nth-child(5) { height: 25px; animation-delay: 0.15s; }
+    .hero-wave-bar:nth-child(6) { height: 40px; animation-delay: 0.35s; }
+
+    @keyframes wavePulse {
+        0% { transform: scaleY(0.8); opacity: 0.7; }
+        100% { transform: scaleY(1.2); opacity: 1; }
+    }
+
+    /* Compact Capability Cards */
+    .capability-card {
         background: #101827;
         border: 1px solid #1D2940;
-        border-radius: 14px;
-        padding: 18px;
-        text-align: center;
+        border-radius: 16px;
+        padding: 22px;
         height: 100%;
+        transition: transform 0.2s, border-color 0.2s;
     }
-    .compact-metric-val {
-        font-size: 1.05rem;
-        font-weight: 700;
+    .capability-card:hover {
+        transform: translateY(-2px);
+        border-color: #334155;
+    }
+    .capability-num {
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: #6366F1;
+        letter-spacing: 0.06em;
+        margin-bottom: 8px;
+    }
+    .capability-title {
+        font-size: 0.98rem;
+        font-weight: 800;
         color: #F8FAFC;
-    }
-    .compact-metric-lbl {
-        font-size: 0.76rem;
-        color: #94A3B8;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-top: 6px;
+        margin-bottom: 6px;
     }
 
-    /* Process Flow Container */
+    /* Process Pipeline Flow */
     .flow-wrapper {
         background: #101827;
         border: 1px solid #1D2940;
@@ -313,13 +351,13 @@ st.markdown("""
         flex: 1;
     }
     .flow-num {
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 800;
         color: #6366F1;
         margin-bottom: 4px;
     }
     .flow-title {
-        font-size: 0.9rem;
+        font-size: 0.88rem;
         font-weight: 700;
         color: #F8FAFC;
     }
@@ -447,26 +485,26 @@ st.markdown("""
 
 # Initialize Navigation State
 if "active_nav" not in st.session_state:
-    st.session_state.active_nav = "Dashboard"
+    st.session_state.active_nav = "▣ Dashboard"
 if "reset_count" not in st.session_state:
     st.session_state.reset_count = 0
 
 
 # -------------------------------------------------------------------
-# SIDEBAR NAVIGATION (STRICTLY 4 ITEMS)
+# SIDEBAR NAVIGATION (PERMANENT FIXED LEFT SIDEBAR)
 # -------------------------------------------------------------------
 with st.sidebar:
     st.markdown("""
     <div class="sidebar-brand-wrapper">
         <div class="sidebar-logo-text">
-            <span class="sidebar-logo-mark"></span> AudioGuard
+            <span class="sidebar-logo-mark"></span> AUDIOGUARD
         </div>
-        <div class="sidebar-subtitle-text">AI Audio Forensic Platform</div>
+        <div class="sidebar-subtitle-text">AI AUDIO FORENSIC PLATFORM</div>
     </div>
     <div class="sidebar-nav-header">NAVIGATION</div>
     """, unsafe_allow_html=True)
 
-    nav_options = ["Dashboard", "Audio Analysis", "System Architecture", "About"]
+    nav_options = ["▣ Dashboard", "◉ Audio Analysis", "◇ System Architecture", "ⓘ About"]
     current_idx = nav_options.index(st.session_state.active_nav) if st.session_state.active_nav in nav_options else 0
 
     nav_selection = st.radio(
@@ -479,11 +517,11 @@ with st.sidebar:
 
     st.markdown("""
     <div class="sidebar-status-box">
-        <div style="font-size: 0.72rem; color: #94A3B8; font-weight: 700; text-transform: uppercase;">Detection Engine</div>
+        <div style="font-size: 0.72rem; color: #94A3B8; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;">DETECTION ENGINE</div>
         <div style="font-size: 0.88rem; font-weight: 700; color: #10B981; margin-top: 4px;">
-            <span class="status-dot-green"></span> Operational
+            <span class="status-dot-green"></span> ● OPERATIONAL
         </div>
-        <div style="font-size: 0.8rem; color: #CBD5E1; margin-top: 4px; font-weight: 500;">MFCC + Random Forest</div>
+        <div style="font-size: 0.8rem; color: #CBD5E1; margin-top: 4px; font-weight: 500;">MFCC + RANDOM FOREST</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -491,14 +529,15 @@ with st.sidebar:
 # -------------------------------------------------------------------
 # COMPACT TOP HEADER BAR
 # -------------------------------------------------------------------
+clean_title = st.session_state.active_nav.replace("▣ ", "").replace("◉ ", "").replace("◇ ", "").replace("ⓘ ", "")
 st.markdown(f"""
 <div class="top-bar">
     <div class="top-bar-title">
-        {st.session_state.active_nav} <span class="top-bar-sub">AI Audio Deepfake Detection</span>
+        {clean_title} <span class="top-bar-sub">AI Audio Deepfake Detection</span>
     </div>
     <div class="top-bar-badge-box">
         <div class="top-bar-status">
-            <span class="status-dot-green"></span> Engine Operational
+            <span class="status-dot-green"></span> ● Engine Operational
         </div>
         <div class="top-bar-badge">
             MFCC + Random Forest
@@ -511,147 +550,131 @@ st.markdown(f"""
 # -------------------------------------------------------------------
 # PAGE 1: DASHBOARD
 # -------------------------------------------------------------------
-if st.session_state.active_nav == "Dashboard":
-    st.markdown("""
-    <div class="hero-card">
-        <div class="hero-pill-badge">AI AUDIO FORENSICS</div>
-        <div class="hero-h1-text">Detect AI-Generated Voices</div>
-        <div class="hero-p-text">Analyze speech recordings using acoustic feature analysis and a trained machine-learning model to identify characteristics associated with synthetic or AI-generated speech.</div>
-    </div>
-    """, unsafe_allow_html=True)
+if st.session_state.active_nav == "▣ Dashboard":
+    col_hero_left, col_hero_right = st.columns([72, 28])
 
-    h_btn1, h_btn2 = st.columns(2)
-    with h_btn1:
-        if st.button("Analyze Audio →", key="btn_hero_an"):
-            st.session_state.active_nav = "Audio Analysis"
-            st.rerun()
-    with h_btn2:
-        if st.button("Record Audio", key="btn_hero_rec"):
-            st.session_state.active_nav = "Audio Analysis"
-            st.rerun()
+    with col_hero_left:
+        st.markdown("""
+        <div class="hero-card">
+            <div class="hero-pill-badge">AI AUDIO FORENSICS</div>
+            <div class="hero-h1-text">Detect AI-Generated Voices<br><span style="color: #38BDF8;">with confidence.</span></div>
+            <div class="hero-p-text">Analyze speech recordings using acoustic feature analysis and a trained machine-learning model to identify characteristics associated with synthetic or AI-generated speech.</div>
+        """, unsafe_allow_html=True)
+
+        h_btn1, h_btn2 = st.columns(2)
+        with h_btn1:
+            if st.button("Analyze Audio →", key="btn_hero_an"):
+                st.session_state.active_nav = "◉ Audio Analysis"
+                st.rerun()
+        with h_btn2:
+            if st.button("Record Audio", key="btn_hero_rec"):
+                st.session_state.active_nav = "◉ Audio Analysis"
+                st.rerun()
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_hero_right:
+        st.markdown("""
+        <div class="info-card" style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 32px 20px;">
+            <div style="font-size: 0.76rem; font-weight: 800; color: #38BDF8; letter-spacing: 0.08em; text-transform: uppercase;">ACOUSTIC INTELLIGENCE</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #F8FAFC; margin-top: 6px;">AudioGuard</div>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 6px; height: 50px; margin: 20px 0;">
+                <div class="hero-wave-bar"></div>
+                <div class="hero-wave-bar"></div>
+                <div class="hero-wave-bar"></div>
+                <div class="hero-wave-bar"></div>
+                <div class="hero-wave-bar"></div>
+                <div class="hero-wave-bar"></div>
+            </div>
+            <div style="font-size: 0.8rem; color: #94A3B8; font-weight: 600;">MFCC Feature Engine</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("### System Overview")
+    st.markdown("### CAPABILITIES")
 
-    # 4 System Overview Grid Cards
-    d1, d2, d3, d4 = st.columns(4)
-    with d1:
+    # 4 Capability Cards
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
         st.markdown("""
-        <div class="compact-metric-card">
-            <div class="compact-metric-val" style="color: #818CF8;">MFCC + Random Forest</div>
-            <div class="compact-metric-lbl">Detection Method</div>
+        <div class="capability-card">
+            <div class="capability-num">01</div>
+            <div class="capability-title">MFCC FEATURE ANALYSIS</div>
+            <div class="info-desc">Acoustic feature extraction for speech analysis.</div>
         </div>
         """, unsafe_allow_html=True)
-    with d2:
+    with c2:
         st.markdown("""
-        <div class="compact-metric-card">
-            <div class="compact-metric-val">Speech Audio</div>
-            <div class="compact-metric-lbl">Input</div>
+        <div class="capability-card">
+            <div class="capability-num">02</div>
+            <div class="capability-title">RANDOM FOREST CLASSIFICATION</div>
+            <div class="info-desc">Fast CPU-based inference using the trained classifier.</div>
         </div>
         """, unsafe_allow_html=True)
-    with d3:
+    with c3:
         st.markdown("""
-        <div class="compact-metric-card">
-            <div class="compact-metric-val">WAV • MP3 • FLAC • OGG • M4A</div>
-            <div class="compact-metric-lbl">Supported Formats</div>
+        <div class="capability-card">
+            <div class="capability-num">03</div>
+            <div class="capability-title">ACOUSTIC VISUALIZATION</div>
+            <div class="info-desc">Waveform, MFCC and Mel-Spectrogram inspection.</div>
         </div>
         """, unsafe_allow_html=True)
-    with d4:
+    with c4:
         st.markdown("""
-        <div class="compact-metric-card">
-            <div class="compact-metric-val" style="color: #38BDF8;">60 seconds</div>
-            <div class="compact-metric-lbl">Maximum Duration</div>
+        <div class="capability-card">
+            <div class="capability-num">04</div>
+            <div class="capability-title">LOCAL PROCESSING</div>
+            <div class="info-desc">Audio analysis performed locally without external AI APIs.</div>
         </div>
         """, unsafe_allow_html=True)
 
-    # How AudioGuard Works Connected Flow
+    # How AudioGuard Analyzes Audio Flow Pipeline
     st.markdown("""
     <div class="flow-wrapper">
-        <div style="font-size: 1.05rem; font-weight: 800; color: #F8FAFC;">How AudioGuard Works</div>
+        <div style="font-size: 1.05rem; font-weight: 800; color: #F8FAFC;">How AudioGuard Analyzes Audio</div>
         <div class="flow-grid">
             <div class="flow-step">
-                <div class="flow-num">01</div>
-                <div class="flow-title">Audio Input</div>
+                <div class="flow-num">STAGE 01</div>
+                <div class="flow-title">AUDIO INPUT</div>
+                <div style="font-size: 0.74rem; color: #94A3B8; margin-top: 4px;">Speech File Load</div>
             </div>
             <div class="flow-arrow">→</div>
             <div class="flow-step">
-                <div class="flow-num">02</div>
-                <div class="flow-title">Preprocessing</div>
+                <div class="flow-num">STAGE 02</div>
+                <div class="flow-title">PREPROCESSING</div>
+                <div style="font-size: 0.74rem; color: #94A3B8; margin-top: 4px;">16 kHz Standard</div>
             </div>
             <div class="flow-arrow">→</div>
             <div class="flow-step">
-                <div class="flow-num">03</div>
-                <div class="flow-title">MFCC Extraction</div>
+                <div class="flow-num">STAGE 03</div>
+                <div class="flow-title">MFCC FEATURES</div>
+                <div style="font-size: 0.74rem; color: #94A3B8; margin-top: 4px;">172-Dim Extraction</div>
             </div>
             <div class="flow-arrow">→</div>
             <div class="flow-step">
-                <div class="flow-num">04</div>
-                <div class="flow-title">Random Forest</div>
+                <div class="flow-num">STAGE 04</div>
+                <div class="flow-title">RANDOM FOREST</div>
+                <div style="font-size: 0.74rem; color: #94A3B8; margin-top: 4px;">Ensemble Inference</div>
             </div>
             <div class="flow-arrow">→</div>
             <div class="flow-step">
-                <div class="flow-num">05</div>
-                <div class="flow-title">Detection Result</div>
+                <div class="flow-num">STAGE 05</div>
+                <div class="flow-title">DETECTION RESULT</div>
+                <div style="font-size: 0.74rem; color: #94A3B8; margin-top: 4px;">REAL / FAKE Verdict</div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
-
-    # System Navigation Cards (Matching Authenticity.AI 3 Grid Cards)
-    st.markdown("### System Navigation")
-    n1, n2, n3 = st.columns(3)
-
-    with n1:
-        st.markdown("""
-        <div class="info-card">
-            <div class="info-card-header">
-                <div class="info-title">Audio Analysis</div>
-                <div class="info-badge">PRIMARY WORKSPACE</div>
-            </div>
-            <div class="info-desc">Inspect speech recordings for acoustic characteristics, MFCC feature anomalies, and synthetic speech probabilities.</div>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Open Section →", key="btn_nav_sec1"):
-            st.session_state.active_nav = "Audio Analysis"
-            st.rerun()
-
-    with n2:
-        st.markdown("""
-        <div class="info-card">
-            <div class="info-card-header">
-                <div class="info-title">System Architecture</div>
-                <div class="info-badge">DOCUMENTATION</div>
-            </div>
-            <div class="info-desc">Explore technical specifications of feature extraction, 16 kHz standardization, and Random Forest classifier logic.</div>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Open Section →", key="btn_nav_sec2"):
-            st.session_state.active_nav = "System Architecture"
-            st.rerun()
-
-    with n3:
-        st.markdown("""
-        <div class="info-card">
-            <div class="info-card-header">
-                <div class="info-title">About</div>
-                <div class="info-badge">OVERVIEW</div>
-            </div>
-            <div class="info-desc">Learn about the acoustic feature approach, local inference design, scope of classification, and platform details.</div>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Open Section →", key="btn_nav_sec3"):
-            st.session_state.active_nav = "About"
-            st.rerun()
 
 
 # -------------------------------------------------------------------
 # PAGE 2: AUDIO ANALYSIS (MAIN FORENSIC WORKSPACE)
 # -------------------------------------------------------------------
-elif st.session_state.active_nav == "Audio Analysis":
+elif st.session_state.active_nav == "◉ Audio Analysis":
     st.markdown("""
     <div style="margin-bottom: 24px;">
         <h2 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 6px;">Audio Analysis</h2>
-        <p style="color: #94A3B8; font-size: 1.02rem;">Upload or record speech audio for forensic analysis</p>
+        <p style="color: #94A3B8; font-size: 1.02rem;">Upload or record speech audio for forensic inspection.</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -666,16 +689,18 @@ elif st.session_state.active_nav == "Audio Analysis":
 
     if input_tab == "Upload Audio File":
         st.markdown("""
-        <div class="info-card">
-            <div class="info-title" style="margin-bottom: 4px;">Single Audio Forensics Workspace</div>
-            <div class="info-desc" style="margin-bottom: 20px;">Upload an audio file (WAV, MP3, FLAC, OGG, M4A) to execute acoustic inspection</div>
+        <div class="info-card" style="text-align: center; padding: 36px 20px;">
+            <div style="font-size: 1.15rem; font-weight: 800; color: #F8FAFC; margin-bottom: 6px;">AUDIO ANALYSIS</div>
+            <div style="font-size: 1.05rem; font-weight: 700; color: #38BDF8; margin-bottom: 4px;">Drop your audio here</div>
+            <div style="font-size: 0.9rem; color: #94A3B8;">Drag & drop your file or Browse Files</div>
+            <div style="font-size: 0.8rem; color: #64748B; margin-top: 12px;">WAV • MP3 • FLAC • OGG • M4A | Maximum 60 seconds</div>
         </div>
         """, unsafe_allow_html=True)
 
         audio_file_buffer = st.file_uploader(
-            "Drop audio file here or Browse Local Files",
+            "Browse Files",
             type=["wav", "mp3", "flac", "ogg", "m4a"],
-            help="Supports WAV, MP3, FLAC, OGG and M4A • Maximum duration: 60 seconds",
+            help="WAV • MP3 • FLAC • OGG • M4A | Maximum 60 seconds",
             key=f"uploader_{st.session_state.reset_count}"
         )
         if audio_file_buffer:
@@ -690,45 +715,46 @@ elif st.session_state.active_nav == "Audio Analysis":
         else:
             st.warning("Live audio recording is not supported in this environment. Please use Upload Audio File.")
 
-    # Awaiting Audio File State vs Selected Audio Preview State
+    # Empty State vs Selected Audio Workspace
     if audio_file_buffer is None:
         st.markdown("""
         <div class="info-card" style="text-align: center; padding: 48px 20px; margin-top: 20px;">
-            <div style="font-size: 1.15rem; font-weight: 800; color: #F8FAFC;">Ready for Analysis</div>
-            <div style="font-size: 0.9rem; color: #94A3B8; margin-top: 8px;">Upload or record an audio file to begin forensic inspection.</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #F8FAFC;">READY FOR FORENSIC ANALYSIS</div>
+            <div style="font-size: 0.9rem; color: #94A3B8; margin-top: 8px;">Upload a speech recording to begin acoustic inspection.</div>
         </div>
         """, unsafe_allow_html=True)
 
     else:
         audio_bytes_data = audio_file_buffer.getvalue() if hasattr(audio_file_buffer, "getvalue") else audio_file_buffer.read()
-        file_size_kb = len(audio_bytes_data) / 1024
+        file_size_mb = len(audio_bytes_data) / (1024 * 1024)
         file_fmt = Path(audio_filename).suffix.upper().replace(".", "") or "WAV"
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(f"""
         <div class="info-card">
             <div class="info-title" style="margin-bottom: 12px;">Selected Audio</div>
-            <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 16px;">
-                <div style="font-size: 0.92rem; color: #CBD5E1;"><strong>Filename:</strong> <code>{audio_filename}</code></div>
-                <div style="font-size: 0.92rem; color: #CBD5E1;"><strong>Format:</strong> <code>{file_fmt}</code></div>
-                <div style="font-size: 0.92rem; color: #CBD5E1;"><strong>Size:</strong> <code>{file_size_kb:.1f} KB</code></div>
-                <div style="font-size: 0.92rem; color: #CBD5E1;"><strong>Sample Rate:</strong> <code>16 kHz Mono</code></div>
+            <div style="font-size: 1.1rem; font-weight: 800; color: #38BDF8; margin-bottom: 14px;"><code>{audio_filename}</code></div>
+            <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 18px;">
+                <div style="font-size: 0.88rem; color: #CBD5E1;"><strong>FORMAT:</strong> <code>{file_fmt}</code></div>
+                <div style="font-size: 0.88rem; color: #CBD5E1;"><strong>SAMPLE RATE:</strong> <code>16 kHz</code></div>
+                <div style="font-size: 0.88rem; color: #CBD5E1;"><strong>CHANNELS:</strong> <code>MONO</code></div>
+                <div style="font-size: 0.88rem; color: #CBD5E1;"><strong>FILE SIZE:</strong> <code>{file_size_mb:.2f} MB</code></div>
             </div>
         """, unsafe_allow_html=True)
 
         st.audio(audio_bytes_data, format="audio/wav")
         st.markdown("<br>", unsafe_allow_html=True)
 
-        if st.button("Run Audio Forensic Analysis →", type="primary", key="btn_run_forensic"):
+        if st.button("RUN FORENSIC ANALYSIS →", type="primary", key="btn_run_forensic"):
             status_box = st.empty()
             status_box.markdown("""
             <div class="info-card">
                 <div style="font-size: 1.1rem; font-weight: 800; color: #F8FAFC; margin-bottom: 8px;">Analyzing Audio</div>
                 <div style="font-size: 0.88rem; color: #94A3B8; margin-bottom: 12px;">Running acoustic forensic analysis...</div>
                 <div style="font-size: 0.85rem; color: #34D399;">✓ Audio preprocessing</div>
-                <div style="font-size: 0.85rem; color: #34D399;">✓ MFCC feature extraction</div>
+                <div style="font-size: 0.85rem; color: #34D399;">✓ Feature extraction</div>
                 <div style="font-size: 0.85rem; color: #38BDF8; font-weight: 700;">● Random Forest classification</div>
-                <div style="font-size: 0.85rem; color: #64748B;">○ Generating forensic report</div>
+                <div style="font-size: 0.85rem; color: #64748B;">○ Result generation</div>
             </div>
             """, unsafe_allow_html=True)
             time.sleep(0.4)
@@ -769,8 +795,8 @@ elif st.session_state.active_nav == "Audio Analysis":
                 elif pred == "REAL":
                     st.markdown("""
                     <div class="result-panel-real">
-                        <div class="result-status-indicator" style="color: #10B981;">● AUTHENTIC SPEECH</div>
-                        <div class="result-header-main" style="color: #10B981;">AUTHENTIC / REAL AUDIO</div>
+                        <div class="result-status-indicator" style="color: #10B981;">● AUTHENTIC AUDIO</div>
+                        <div class="result-header-main" style="color: #10B981;">AUTHENTIC AUDIO</div>
                         <div class="result-desc-text">The audio is classified as likely genuine human speech.</div>
                     </div>
                     """, unsafe_allow_html=True)
@@ -783,78 +809,83 @@ elif st.session_state.active_nav == "Audio Analysis":
                     </div>
                     """, unsafe_allow_html=True)
 
-                # Detection Confidence Visualization
-                st.markdown("### Detection Confidence")
-                st.markdown(f"<h1 style='text-align: center; color: #38BDF8; font-size: 3.6rem; font-weight: 900; margin-bottom: 8px;'>{conf:.1f}%</h1>", unsafe_allow_html=True)
+                # Large Circular / Numerical Confidence Gauge
+                st.markdown(f"<h1 style='text-align: center; color: #38BDF8; font-size: 3.8rem; font-weight: 900; margin-bottom: 2px;'>{conf:.1f}%</h1>", unsafe_allow_html=True)
+                st.markdown("<div style='text-align: center; font-size: 0.8rem; font-weight: 800; color: #94A3B8; letter-spacing: 0.1em; margin-bottom: 16px;'>CONFIDENCE</div>", unsafe_allow_html=True)
                 st.progress(conf / 100.0)
 
-                b1, b2, b3 = st.columns(3)
+                b1, b2 = st.columns(2)
                 with b1:
                     st.markdown(f"**REAL:** `{real_p:.1f}%`")
                 with b2:
-                    st.markdown(f"<div style='text-align: center;'><strong>Analysis Time:</strong> <code>{proc_time:.2f} s</code></div>", unsafe_allow_html=True)
-                with b3:
                     st.markdown(f"<div style='text-align: right;'><strong>AI-GENERATED:</strong> <code>{fake_p:.1f}%</code></div>", unsafe_allow_html=True)
 
                 st.markdown("<br>", unsafe_allow_html=True)
 
-                # Forensic Analysis Summary Grid (6 Grid Cards)
-                st.markdown("### Forensic Analysis Summary")
-                r1, r2, r3, r4, r5, r6 = st.columns(6)
+                # Result Summary Grid
+                st.markdown("### RESULT SUMMARY")
+                r1, r2, r3, r4, r5, r6, r7 = st.columns(7)
                 with r1:
                     st.markdown(f"""
                     <div class="compact-metric-card">
                         <div class="compact-metric-val" style="color: {'#10B981' if pred=='REAL' else '#EF4444'};">{'REAL' if pred=='REAL' else 'AI-GENERATED'}</div>
-                        <div class="compact-metric-lbl">Classification</div>
+                        <div class="compact-metric-lbl">CLASSIFICATION</div>
                     </div>
                     """, unsafe_allow_html=True)
                 with r2:
                     st.markdown(f"""
                     <div class="compact-metric-card">
                         <div class="compact-metric-val">{conf:.1f}%</div>
-                        <div class="compact-metric-lbl">Confidence</div>
+                        <div class="compact-metric-lbl">CONFIDENCE</div>
                     </div>
                     """, unsafe_allow_html=True)
                 with r3:
                     st.markdown(f"""
                     <div class="compact-metric-card">
                         <div class="compact-metric-val" style="color: #10B981;">{real_p:.1f}%</div>
-                        <div class="compact-metric-lbl">Real Prob</div>
+                        <div class="compact-metric-lbl">REAL PROB</div>
                     </div>
                     """, unsafe_allow_html=True)
                 with r4:
                     st.markdown(f"""
                     <div class="compact-metric-card">
                         <div class="compact-metric-val" style="color: #EF4444;">{fake_p:.1f}%</div>
-                        <div class="compact-metric-lbl">AI Prob</div>
+                        <div class="compact-metric-lbl">AI PROB</div>
                     </div>
                     """, unsafe_allow_html=True)
                 with r5:
                     st.markdown(f"""
                     <div class="compact-metric-card">
-                        <div class="compact-metric-val" style="color: #A855F7;">{result['audio_duration_sec']:.2f} s</div>
-                        <div class="compact-metric-lbl">Duration</div>
+                        <div class="compact-metric-val" style="color: #F59E0B;">{proc_time:.2f} s</div>
+                        <div class="compact-metric-lbl">PROCESSING TIME</div>
                     </div>
                     """, unsafe_allow_html=True)
                 with r6:
                     st.markdown(f"""
                     <div class="compact-metric-card">
+                        <div class="compact-metric-val" style="color: #A855F7;">{result['audio_duration_sec']:.2f} s</div>
+                        <div class="compact-metric-lbl">AUDIO DURATION</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with r7:
+                    st.markdown(f"""
+                    <div class="compact-metric-card">
                         <div class="compact-metric-val" style="color: #38BDF8;">MFCC + RF</div>
-                        <div class="compact-metric-lbl">Method</div>
+                        <div class="compact-metric-lbl">METHOD</div>
                     </div>
                     """, unsafe_allow_html=True)
 
                 st.markdown("<br>", unsafe_allow_html=True)
 
-                # Acoustic Diagnostics Section
-                st.markdown("### Acoustic Diagnostics")
+                # Acoustic Forensics Section
+                st.markdown("### ACOUSTIC FORENSICS")
                 waveform, sr, _ = load_and_preprocess_audio(audio_bytes_data)
 
                 plt.style.use('dark_background')
-                v1, v2, v3 = st.tabs(["Waveform", "MFCC Heatmap", "Mel-Spectrogram"])
+                v1, v2, v3 = st.tabs(["WAVEFORM", "MFCC", "MEL-SPECTROGRAM"])
 
                 with v1:
-                    st.caption("Time-domain representation of the analyzed speech signal.")
+                    st.caption("Time-domain representation of the analyzed audio.")
                     fig, ax = plt.subplots(figsize=(9, 2.6))
                     fig.patch.set_facecolor('#101827')
                     ax.set_facecolor('#0B1220')
@@ -868,7 +899,7 @@ elif st.session_state.active_nav == "Audio Analysis":
                     st.pyplot(fig)
 
                 with v2:
-                    st.caption("Mel-frequency cepstral representation used by the detection pipeline.")
+                    st.caption("Mel-frequency cepstral representation used for feature extraction.")
                     mfccs = compute_mfcc_visualization(waveform, sr=sr)
                     fig, ax = plt.subplots(figsize=(9, 2.8))
                     fig.patch.set_facecolor('#101827')
@@ -895,20 +926,11 @@ elif st.session_state.active_nav == "Audio Analysis":
                     plt.tight_layout()
                     st.pyplot(fig)
 
-                # Segment-Level Analysis (If audio duration > 4 seconds)
+                # Segment Analysis (If audio duration > 4 seconds)
                 if len(result["windows"]) > 1:
-                    st.markdown("### Segment-Level Analysis")
-                    win_df = pd.DataFrame(result["windows"])
-                    win_df = win_df.rename(columns={
-                        "start_sec": "Start (s)",
-                        "end_sec": "End (s)",
-                        "label": "Classification",
-                        "fake_prob": "AI Probability (%)",
-                        "real_prob": "Real Prob (%)"
-                    })
-                    st.dataframe(win_df[["Start (s)", "End (s)", "Classification", "AI Probability (%)"]], use_container_width=True)
-
-                    st.markdown("#### AI Probability Over Time")
+                    st.markdown("### SEGMENT ANALYSIS")
+                    st.caption("AI PROBABILITY OVER TIME")
+                    
                     fig, ax = plt.subplots(figsize=(8, 2.6))
                     fig.patch.set_facecolor('#101827')
                     ax.set_facecolor('#0B1220')
@@ -927,9 +949,25 @@ elif st.session_state.active_nav == "Audio Analysis":
                     plt.tight_layout()
                     st.pyplot(fig)
 
-                # Result Action
+                    # Compact Segment Cards
+                    seg_cols = st.columns(min(len(result["windows"]), 4))
+                    for idx, w in enumerate(result["windows"][:4]):
+                        with seg_cols[idx % 4]:
+                            st.markdown(f"""
+                            <div class="compact-metric-card">
+                                <div style="font-size: 0.78rem; font-weight: 800; color: #6366F1;">{w['start_sec']:.1f}s–{w['end_sec']:.1f}s</div>
+                                <div style="font-size: 0.95rem; font-weight: 800; color: {'#EF4444' if w['fake_prob'] >= 50 else '#10B981'}; margin-top: 4px;">{w['fake_prob']:.1f}%</div>
+                                <div class="compact-metric-lbl">AI Probability</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                # Forensic Report Actions
                 st.markdown("<br>", unsafe_allow_html=True)
-                report_text = f"""==================================================
+                st.markdown("### ANALYSIS REPORT")
+                
+                act_col1, act_col2 = st.columns(2)
+                with act_col1:
+                    report_text = f"""==================================================
 AUDIOGUARD FORENSIC ANALYSIS REPORT
 ==================================================
 Analysis Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}
@@ -945,35 +983,40 @@ Detection Method:   MFCC + Random Forest Classifier
 Processing Time:    {result['processing_time_sec']:.2f} seconds
 ==================================================
 """
-                st.download_button(
-                    label="Download Analysis Report",
-                    data=report_text,
-                    file_name=f"audioguard_report_{Path(audio_filename).stem}.txt",
-                    mime="text/plain"
-                )
+                    st.download_button(
+                        label="Download Analysis Report",
+                        data=report_text,
+                        file_name=f"audioguard_report_{Path(audio_filename).stem}.txt",
+                        mime="text/plain"
+                    )
+
+                with act_col2:
+                    if st.button("Analyze Another Audio", key="btn_reset_forensic"):
+                        st.session_state.reset_count += 1
+                        st.rerun()
 
                 # Disclaimer
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.caption("Disclaimer: AudioGuard provides probabilistic machine-learning predictions. Results should be treated as automated indicators and not as absolute proof of authenticity.")
+                st.caption("AudioGuard provides probabilistic machine-learning predictions. Results should be treated as automated indicators rather than absolute proof of authenticity.")
 
-            except Exception as e:
-                st.error("Unable to Analyze Audio. Please upload a valid supported audio file and try again.")
+            except Exception:
+                st.error("ANALYSIS FAILED: Unable to process this audio file. Check that the file format is supported and try again.")
 
         st.markdown("</div>", unsafe_allow_html=True)
 
 
 # -------------------------------------------------------------------
-# PAGE 3: SYSTEM ARCHITECTURE (INSPIRED BY AUTHENTICITY.AI ARCHITECTURE)
+# PAGE 3: SYSTEM ARCHITECTURE
 # -------------------------------------------------------------------
-elif st.session_state.active_nav == "System Architecture":
+elif st.session_state.active_nav == "◇ System Architecture":
     st.markdown("""
     <div style="margin-bottom: 24px;">
         <h2 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 6px;">System Architecture</h2>
-        <p style="color: #94A3B8; font-size: 1.05rem;">Audio Forensic Detection Pipeline</p>
+        <p style="color: #94A3B8; font-size: 1.05rem;">AudioGuard Detection Pipeline</p>
     </div>
     """, unsafe_allow_html=True)
 
-    # Architecture Flowchart Sitemap
+    # Architecture Flowchart
     st.markdown("""
     <div class="flow-wrapper">
         <div style="font-size: 1.15rem; font-weight: 800; color: #F8FAFC;">Pipeline Architecture Sitemap</div>
@@ -986,59 +1029,50 @@ elif st.session_state.active_nav == "System Architecture":
             <div class="flow-arrow">→</div>
             <div class="flow-step">
                 <div class="flow-num">STEP 02</div>
-                <div class="flow-title">Preprocessing</div>
+                <div class="flow-title">Audio Preprocessing</div>
             </div>
             <div class="flow-arrow">→</div>
             <div class="flow-step">
                 <div class="flow-num">STEP 03</div>
-                <div class="flow-title">16 kHz Mono Standard</div>
+                <div class="flow-title">16 kHz Mono Standardization</div>
             </div>
             <div class="flow-arrow">→</div>
             <div class="flow-step">
                 <div class="flow-num">STEP 04</div>
-                <div class="flow-title">MFCC Extraction</div>
+                <div class="flow-title">MFCC Feature Extraction</div>
             </div>
             <div class="flow-arrow">→</div>
             <div class="flow-step">
                 <div class="flow-num">STEP 05</div>
-                <div class="flow-title">Random Forest</div>
+                <div class="flow-title">172-Dimensional Feature Vector</div>
             </div>
             <div class="flow-arrow">→</div>
             <div class="flow-step">
                 <div class="flow-num">STEP 06</div>
-                <div class="flow-title">REAL / FAKE Verdict</div>
+                <div class="flow-title">Random Forest Classifier</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="flow-num">STEP 07</div>
+                <div class="flow-title">Probability Estimation</div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+                <div class="flow-num">STEP 08</div>
+                <div class="flow-title">REAL / AI-GENERATED</div>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Technical Specs Code Block
-    st.markdown("""
-    <div class="info-card">
-        <div class="info-title">RANDOM FOREST CLASSIFICATION PIPELINE MATH & SPECS</div>
-        <div class="code-container-box">
-// Acoustic Feature Vector Construction (172-Dimensional):<br>
-Features = [ MFCC(1..13), Delta_MFCC(1..13), Delta2_MFCC(1..13), SpectralCentroid, SpectralRolloff, ZCR, RMS, Flatness ]<br><br>
-// Decision Logic Threshold:<br>
-if (Overall_Fake_Probability >= 0.50) {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;Verdict = "AI-GENERATED AUDIO";<br>
-&nbsp;&nbsp;&nbsp;&nbsp;Confidence = Overall_Fake_Probability * 100;<br>
-} else {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;Verdict = "AUTHENTIC / REAL AUDIO";<br>
-&nbsp;&nbsp;&nbsp;&nbsp;Confidence = Overall_Real_Probability * 100;<br>
-}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Technical Pipeline Cards
+    # Technical Sections
     c1, c2, c3 = st.columns(3)
 
     with c1:
         st.markdown("""
         <div class="info-card" style="height: 100%;">
             <div class="info-card-header">
-                <div class="info-title">Audio Preprocessing</div>
+                <div class="info-title">AUDIO PREPROCESSING</div>
                 <div class="info-badge">STAGE 1</div>
             </div>
             <div class="info-desc">
@@ -1057,7 +1091,7 @@ if (Overall_Fake_Probability >= 0.50) {<br>
         st.markdown("""
         <div class="info-card" style="height: 100%;">
             <div class="info-card-header">
-                <div class="info-title">Feature Extraction</div>
+                <div class="info-title">FEATURE EXTRACTION</div>
                 <div class="info-badge">STAGE 2</div>
             </div>
             <div class="info-desc">
@@ -1076,11 +1110,11 @@ if (Overall_Fake_Probability >= 0.50) {<br>
         st.markdown("""
         <div class="info-card" style="height: 100%;">
             <div class="info-card-header">
-                <div class="info-title">Random Forest Classifier</div>
+                <div class="info-title">CLASSIFICATION</div>
                 <div class="info-badge">STAGE 3</div>
             </div>
             <div class="info-desc">
-                Ensemble decision tree model trained for binary speech classification:
+                Random Forest classifier trained for binary speech classification:
                 <ul style="margin-top: 10px; color: #CBD5E1; padding-left: 18px;">
                     <li>CPU-based optimized inference</li>
                     <li>Class probability estimation</li>
@@ -1093,13 +1127,13 @@ if (Overall_Fake_Probability >= 0.50) {<br>
 
 
 # -------------------------------------------------------------------
-# PAGE 4: ABOUT (INSPIRED BY AUTHENTICITY.AI ABOUT PAGE)
+# PAGE 4: ABOUT
 # -------------------------------------------------------------------
-elif st.session_state.active_nav == "About":
+elif st.session_state.active_nav == "ⓘ About":
     st.markdown("""
     <div style="margin-bottom: 24px;">
         <h2 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 6px;">About AudioGuard</h2>
-        <p style="color: #94A3B8; font-size: 1.05rem;">Platform Overview & Technical Implementation Specifications</p>
+        <p style="color: #94A3B8; font-size: 1.05rem;">AudioGuard AI Audio Forensic Platform</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1107,7 +1141,7 @@ elif st.session_state.active_nav == "About":
     <div class="info-card">
         <div class="info-title" style="font-size: 1.2rem; margin-bottom: 8px;">About AudioGuard</div>
         <div class="info-desc" style="font-size: 1.02rem;">
-            AudioGuard is an AI-assisted audio forensic application designed to analyze speech recordings and identify acoustic characteristics associated with AI-generated or synthetic speech.
+            AudioGuard is an AI-assisted audio forensic application that analyzes speech recordings using acoustic feature extraction and a trained Random Forest classifier to identify characteristics associated with AI-generated speech.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1117,8 +1151,8 @@ elif st.session_state.active_nav == "About":
     with a1:
         st.markdown("""
         <div class="info-card">
-            <div class="info-title">Detection Approach</div>
-            <div class="info-desc" style="font-size: 1rem; color: #38BDF8; font-weight: 700; margin-top: 6px;">MFCC Feature Analysis</div>
+            <div class="info-title">Detection Method</div>
+            <div class="info-desc" style="font-size: 1rem; color: #38BDF8; font-weight: 700; margin-top: 6px;">MFCC + Random Forest</div>
             <div class="info-desc" style="margin-top: 6px;">Extracts spectral envelop and cepstral properties from audio signals to capture subtle synthetic artifacts.</div>
         </div>
         """, unsafe_allow_html=True)
@@ -1126,9 +1160,9 @@ elif st.session_state.active_nav == "About":
     with a2:
         st.markdown("""
         <div class="info-card">
-            <div class="info-title">Classification Model</div>
-            <div class="info-desc" style="font-size: 1rem; color: #818CF8; font-weight: 700; margin-top: 6px;">Random Forest</div>
-            <div class="info-desc" style="margin-top: 6px;">Leverages an ensemble decision tree pipeline trained on acoustic vectors to calculate probabilities.</div>
+            <div class="info-title">Input</div>
+            <div class="info-desc" style="font-size: 1rem; color: #818CF8; font-weight: 700; margin-top: 6px;">Speech Audio</div>
+            <div class="info-desc" style="margin-top: 6px;">Supports WAV, MP3, FLAC, OGG, and M4A audio files up to 60 seconds duration.</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1136,37 +1170,13 @@ elif st.session_state.active_nav == "About":
         st.markdown("""
         <div class="info-card">
             <div class="info-title">Processing</div>
-            <div class="info-desc" style="font-size: 1rem; color: #10B981; font-weight: 700; margin-top: 6px;">Local Audio Analysis</div>
+            <div class="info-desc" style="font-size: 1rem; color: #10B981; font-weight: 700; margin-top: 6px;">Local Analysis</div>
             <div class="info-desc" style="margin-top: 6px;">Executes local CPU-based inference with privacy-focused audio processing.</div>
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("""
-    <div class="info-card">
-        <div class="info-title" style="margin-bottom: 12px;">System Specifications</div>
-        <table style="width: 100%; border-collapse: collapse; color: #CBD5E1; font-size: 0.95rem;">
-            <tr style="border-bottom: 1px solid #1D2940;">
-                <td style="padding: 10px 0; font-weight: 700; color: #94A3B8; width: 35%;">Detection Method</td>
-                <td style="padding: 10px 0; font-weight: 600; color: #F8FAFC;">MFCC + Random Forest Classifier</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #1D2940;">
-                <td style="padding: 10px 0; font-weight: 700; color: #94A3B8;">Input Types</td>
-                <td style="padding: 10px 0; font-weight: 600; color: #F8FAFC;">Speech Audio (WAV, MP3, FLAC, OGG, M4A)</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #1D2940;">
-                <td style="padding: 10px 0; font-weight: 700; color: #94A3B8;">Output Labels</td>
-                <td style="padding: 10px 0; font-weight: 600; color: #F8FAFC;">AUTHENTIC / REAL AUDIO | AI-GENERATED AUDIO</td>
-            </tr>
-            <tr>
-                <td style="padding: 10px 0; font-weight: 700; color: #94A3B8;">Model Storage</td>
-                <td style="padding: 10px 0; font-weight: 600; color: #F8FAFC;">models/mfcc_model.joblib & models/config.json</td>
-            </tr>
-        </table>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
     <div style="margin-top: 24px;">
-        <p style="color: #64748B; font-size: 0.85rem;"><strong>Disclaimer:</strong> AudioGuard provides probabilistic machine-learning predictions. Results should be treated as automated indicators and not as absolute proof of authenticity.</p>
+        <p style="color: #64748B; font-size: 0.85rem;">AudioGuard provides probabilistic machine-learning predictions. Results should be treated as automated indicators rather than absolute proof of authenticity.</p>
     </div>
     """, unsafe_allow_html=True)
