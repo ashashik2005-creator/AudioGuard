@@ -591,13 +591,22 @@ def page_dashboard():
 # =====================================================================================
 def build_report_text(a: dict) -> str:
     r = a["result"]
-    uncertain = r.get("is_uncertain", False)
+    thr = r.get("decision_threshold", 0.50)
+    margin = r.get("uncertainty_margin", 0.05)
+    fake_p = r["fake_probability"]
+    lower_b = (thr - margin) * 100
+    upper_b = (thr + margin) * 100
+    uncertain = r.get("is_uncertain", False) or (lower_b <= fake_p <= upper_b)
+
     if uncertain:
         classification_str = "INCONCLUSIVE"
-    elif r["prediction"] == "REAL":
+        conf_str = "Low / Borderline"
+    elif fake_p < lower_b:
         classification_str = "AUTHENTIC AUDIO"
+        conf_str = f"{r['real_probability']:.2f}%"
     else:
         classification_str = "AI-GENERATED AUDIO"
+        conf_str = f"{r['fake_probability']:.2f}%"
 
     return f"""==================================================
 AUDIOGUARD FORENSIC ANALYSIS REPORT
@@ -609,10 +618,11 @@ Audio Duration:     {r['audio_duration_sec']:.2f} seconds
 CLASSIFICATION:     {classification_str}
 Real Probability:   {r['real_probability']:.2f}%
 AI Probability:     {r['fake_probability']:.2f}%
-Confidence Level:   {"Low / Borderline" if uncertain else f"{r['confidence']:.2f}%"}
+Confidence Level:   {conf_str}
 
 Detection Method:   {DETECTION_METHOD_STR}
-Decision Threshold: {r.get('decision_threshold', 0.5) * 100:.0f}%
+Decision Threshold: {thr * 100:.0f}%
+Uncertainty Range:  {lower_b:.0f}%–{upper_b:.0f}%
 Processing Time:    {r['processing_time_sec']:.2f} seconds
 ==================================================
 AudioGuard provides probabilistic machine-learning predictions.
@@ -630,43 +640,46 @@ def style_axes(fig, ax):
 
 def render_results(a: dict):
     r, vis = a["result"], a["vis"]
-    pred, conf = r["prediction"], r["confidence"]
     fake_p, real_p = r["fake_probability"], r["real_probability"]
-    uncertain = r.get("is_uncertain", False)
     thr = r.get("decision_threshold", 0.50)
+    margin = r.get("uncertainty_margin", 0.05)
+    lower_b = (thr - margin) * 100
+    upper_b = (thr + margin) * 100
+
+    uncertain = r.get("is_uncertain", False) or (lower_b <= fake_p <= upper_b)
 
     if uncertain:
         cls = "unsure"
         title = "INCONCLUSIVE"
-        subtitle = "The model cannot confidently distinguish authentic from AI-generated speech."
+        subtitle = "The available acoustic evidence is not strong enough to reliably distinguish authentic from AI-generated speech."
         warning_box = ('<div style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);border-radius:12px;'
                        'padding:14px 18px;margin-top:16px;color:#FBBF24;font-size:0.9rem;line-height:1.5;font-weight:600">'
-                       '⚠️ Both classes have similar model probabilities. This result should not be treated as a definitive classification.'
-                       '<br><span style="color:#CBD5E1;font-weight:400;font-size:0.85rem">Borderline result — the model probabilities are too close to the decision boundary for a reliable classification.'
+                       '⚠️ Model probabilities are too close to the decision boundary for a confident classification.'
+                       '<br><span style="color:#CBD5E1;font-weight:400;font-size:0.85rem">Borderline result — the model probabilities fall inside the uncertainty range.'
                        '<br>For best results, use a clear speech recording with minimal background noise and sufficient speech duration.</span></div>')
         conf_display = "Low / Borderline"
         verdict_color = "var(--amber)"
-    elif pred == "REAL":
+    elif fake_p < lower_b:
         cls = "real"
         title = "AUTHENTIC AUDIO"
         subtitle = "The model found stronger evidence consistent with authentic speech."
         warning_box = ""
-        conf_display = f"{conf:.1f}%"
+        conf_display = f"{real_p:.1f}%"
         verdict_color = "var(--green)"
     else:
         cls = "fake"
         title = "AI-GENERATED AUDIO"
         subtitle = "The model found stronger evidence consistent with synthetic speech."
         warning_box = ""
-        conf_display = f"{conf:.1f}%"
+        conf_display = f"{fake_p:.1f}%"
         verdict_color = "var(--red)"
 
     circ = 2 * np.pi * 52
-    off = circ * (1 - min(max(conf if not uncertain else 50, 0), 100) / 100)
+    off = circ * (1 - min(max(real_p if title == 'AUTHENTIC AUDIO' else (fake_p if title == 'AI-GENERATED AUDIO' else 50), 0), 100) / 100)
     md(f'''<div class="result {cls}">
         <div class="ring" style="--circ:{circ:.1f};--off:{off:.1f}">
           <svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="52"/><circle class="val" cx="60" cy="60" r="52"/></svg>
-          <div class="ring-txt"><b>{"—" if uncertain else f"{conf:.0f}%"}</b><small>CONFIDENCE</small></div>
+          <div class="ring-txt"><b>{"—" if uncertain else f"{real_p if title == 'AUTHENTIC AUDIO' else fake_p:.0f}%"}</b><small>CONFIDENCE</small></div>
         </div>
         <div>
           <div class="kicker">FORENSIC ASSESSMENT</div>
@@ -681,16 +694,16 @@ def render_results(a: dict):
       </div>''')
 
     tiles = [
-        ("Model Assessment", f'<b class="txt" style="color:{verdict_color}">{"INCONCLUSIVE" if uncertain else ("AUTHENTIC" if pred == "REAL" else "AI-GENERATED")}</b>'),
+        ("Model Assessment", f'<b class="txt" style="color:{verdict_color}">{"INCONCLUSIVE" if uncertain else ("AUTHENTIC AUDIO" if title == "AUTHENTIC AUDIO" else "AI-GENERATED AUDIO")}</b>'),
         ("Confidence", f"<b>{conf_display}</b>"),
         ("Real probability", f'<b style="color:var(--green)">{real_p:.1f}%</b>'),
         ("AI probability", f'<b style="color:var(--red)">{fake_p:.1f}%</b>'),
         ("Processing time", f"<b>{r['processing_time_sec']:.2f} s</b>"),
         ("Audio duration", f"<b>{r['audio_duration_sec']:.1f} s</b>"),
         ("Detection method", f'<b class="txt">{E(DETECTION_METHOD_STR)}</b>'),
+        ("Decision threshold", f"<b>{thr * 100:.0f}%</b>"),
+        ("Uncertainty range", f"<b>{lower_b:.0f}%–{upper_b:.0f}%</b>"),
     ]
-    if thr is not None:
-        tiles.append(("Decision threshold", f"<b>{thr * 100:.0f}%</b>"))
 
     md('<div class="sec"><div class="sec-t">Result summary</div></div>')
     md('<div class="metrics">' + "".join(f'<div class="metric"><small>{k}</small>{v}</div>' for k, v in tiles) + '</div>')

@@ -99,6 +99,7 @@ def predict_audio_file(audio_path: Union[str, Path], backend: str = None) -> Dic
         "real_probability": round(overall_real_prob * 100, 2),
         "confidence": round(confidence_pct, 2),
         "decision_threshold": threshold,
+        "uncertainty_margin": uncertainty_margin,
         "is_uncertain": is_uncertain,
         "processing_time_sec": processing_time,
         "backend_used": selected_backend,
