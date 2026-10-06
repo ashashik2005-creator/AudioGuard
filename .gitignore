@@ -15,3 +15,8 @@ env/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Audio Data Files
+data/raw/
+data/processed/
+
