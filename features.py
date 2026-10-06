@@ -8,11 +8,17 @@ from pathlib import Path
 from typing import Union, List, Tuple, Dict, Any, Optional
 
 import numpy as np
-import librosa
+import scipy.signal as signal
+import scipy.fft as fft
 import joblib
 
 import config
-from audio_utils import load_and_preprocess_audio, pad_or_crop_waveform, extract_sliding_windows
+from audio_utils import load_and_preprocess_audio, pad_or_crop_waveform, extract_sliding_windows, _get_mel_filterbank
+
+try:
+    import librosa
+except Exception:
+    librosa = None
 
 
 class HandcraftedFeatureExtractor:
@@ -26,6 +32,49 @@ class HandcraftedFeatureExtractor:
         self.n_mfcc = n_mfcc
         self.n_mels = n_mels
 
+    def _extract_waveform_features_scipy(self, waveform: np.ndarray, sr: int = config.SAMPLE_RATE) -> np.ndarray:
+        n_fft = 1024
+        hop_length = 512
+        f, t, Zxx = signal.stft(waveform, fs=sr, nperseg=n_fft, noverlap=n_fft - hop_length, boundary=None)
+        mag = np.abs(Zxx) + 1e-10
+
+        fb = _get_mel_filterbank(sr, n_fft, self.n_mels)
+        mel_spec = np.dot(fb, mag)
+        mel_spec_db = 10 * np.log10(np.maximum(1e-10, mel_spec))
+        mel_spec_db = mel_spec_db - np.max(mel_spec_db)
+
+        log_mel = np.log(np.maximum(1e-10, mel_spec))
+        mfcc = fft.dct(log_mel, type=2, axis=0, norm="ortho")[:self.n_mfcc]
+        delta_mfcc = np.gradient(mfcc, axis=1)
+
+        freqs = np.linspace(0, sr / 2, mag.shape[0])[:, None]
+        centroid = np.sum(freqs * mag, axis=0, keepdims=True) / np.sum(mag, axis=0, keepdims=True)
+        bandwidth = np.sqrt(np.sum(((freqs - centroid)**2) * mag, axis=0, keepdims=True) / np.sum(mag, axis=0, keepdims=True))
+
+        cum_energy = np.cumsum(mag, axis=0)
+        tot_energy = cum_energy[-1, :]
+        rolloff_idx = np.argmax(cum_energy >= 0.85 * tot_energy, axis=0)
+        rolloff = freqs[rolloff_idx, 0][None, :]
+
+        zcr = np.mean(np.abs(np.diff(np.sign(waveform) != 0)), keepdims=True).reshape(1, 1)
+        rms = np.sqrt(np.mean(waveform**2, keepdims=True)).reshape(1, 1)
+
+        gmean = np.exp(np.mean(np.log(mag), axis=0, keepdims=True))
+        flatness = gmean / np.mean(mag, axis=0, keepdims=True)
+
+        features = []
+        features.extend([np.mean(mfcc, axis=1), np.std(mfcc, axis=1)])
+        features.extend([np.mean(delta_mfcc, axis=1), np.std(delta_mfcc, axis=1)])
+        features.extend([np.mean(mel_spec_db, axis=1), np.std(mel_spec_db, axis=1)])
+        features.extend([[np.mean(centroid)], [np.std(centroid)]])
+        features.extend([[np.mean(bandwidth)], [np.std(bandwidth)]])
+        features.extend([[np.mean(rolloff)], [np.std(rolloff)]])
+        features.extend([[np.mean(zcr)], [np.std(zcr)]])
+        features.extend([[np.mean(rms)], [np.std(rms)]])
+        features.extend([[np.mean(flatness)], [np.std(flatness)]])
+
+        return np.concatenate([np.ravel(x) for x in features]).astype(np.float32)
+
     def extract_waveform_features(self, waveform: np.ndarray, sr: int = config.SAMPLE_RATE) -> np.ndarray:
         """
         Extracts a concatenated 1D statistical feature vector from an audio waveform chunk.
@@ -34,48 +83,56 @@ class HandcraftedFeatureExtractor:
         if not np.isfinite(waveform).all():
             waveform = np.nan_to_num(waveform)
 
-        features = []
+        if librosa is not None:
+            try:
+                features = []
 
-        # 1. MFCCs (20 coefficients)
-        mfcc = librosa.feature.mfcc(y=waveform, sr=sr, n_mfcc=self.n_mfcc)
-        features.extend([np.mean(mfcc, axis=1), np.std(mfcc, axis=1)])
+                # 1. MFCCs (20 coefficients)
+                mfcc = librosa.feature.mfcc(y=waveform, sr=sr, n_mfcc=self.n_mfcc)
+                features.extend([np.mean(mfcc, axis=1), np.std(mfcc, axis=1)])
 
-        # 2. Delta MFCCs (20 coefficients)
-        delta_mfcc = librosa.feature.delta(mfcc)
-        features.extend([np.mean(delta_mfcc, axis=1), np.std(delta_mfcc, axis=1)])
+                # 2. Delta MFCCs (20 coefficients)
+                delta_mfcc = librosa.feature.delta(mfcc)
+                features.extend([np.mean(delta_mfcc, axis=1), np.std(delta_mfcc, axis=1)])
 
-        # 3. Mel-Spectrogram Stats (40 bands)
-        mel_spec = librosa.feature.melspectrogram(y=waveform, sr=sr, n_mels=self.n_mels)
-        mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
-        features.extend([np.mean(mel_spec_db, axis=1), np.std(mel_spec_db, axis=1)])
+                # 3. Mel-Spectrogram Stats (40 bands)
+                mel_spec = librosa.feature.melspectrogram(y=waveform, sr=sr, n_mels=self.n_mels)
+                mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
+                features.extend([np.mean(mel_spec_db, axis=1), np.std(mel_spec_db, axis=1)])
 
-        # 4. Spectral Centroid
-        centroid = librosa.feature.spectral_centroid(y=waveform, sr=sr)
-        features.extend([[np.mean(centroid)], [np.std(centroid)]])
+                # 4. Spectral Centroid
+                centroid = librosa.feature.spectral_centroid(y=waveform, sr=sr)
+                features.extend([[np.mean(centroid)], [np.std(centroid)]])
 
-        # 5. Spectral Bandwidth
-        bandwidth = librosa.feature.spectral_bandwidth(y=waveform, sr=sr)
-        features.extend([[np.mean(bandwidth)], [np.std(bandwidth)]])
+                # 5. Spectral Bandwidth
+                bandwidth = librosa.feature.spectral_bandwidth(y=waveform, sr=sr)
+                features.extend([[np.mean(bandwidth)], [np.std(bandwidth)]])
 
-        # 6. Spectral Rolloff
-        rolloff = librosa.feature.spectral_rolloff(y=waveform, sr=sr)
-        features.extend([[np.mean(rolloff)], [np.std(rolloff)]])
+                # 6. Spectral Rolloff
+                rolloff = librosa.feature.spectral_rolloff(y=waveform, sr=sr)
+                features.extend([[np.mean(rolloff)], [np.std(rolloff)]])
 
-        # 7. Zero-Crossing Rate
-        zcr = librosa.feature.zero_crossing_rate(y=waveform)
-        features.extend([[np.mean(zcr)], [np.std(zcr)]])
+                # 7. Zero-Crossing Rate
+                zcr = librosa.feature.zero_crossing_rate(y=waveform)
+                features.extend([[np.mean(zcr)], [np.std(zcr)]])
 
-        # 8. RMS Energy
-        rms = librosa.feature.rms(y=waveform)
-        features.extend([[np.mean(rms)], [np.std(rms)]])
+                # 8. RMS Energy
+                rms = librosa.feature.rms(y=waveform)
+                features.extend([[np.mean(rms)], [np.std(rms)]])
 
-        # 9. Spectral Flatness
-        flatness = librosa.feature.spectral_flatness(y=waveform)
-        features.extend([[np.mean(flatness)], [np.std(flatness)]])
+                # 9. Spectral Flatness
+                flatness = librosa.feature.spectral_flatness(y=waveform)
+                features.extend([[np.mean(flatness)], [np.std(flatness)]])
 
-        # Concatenate into 1D float32 array
-        feature_vector = np.concatenate([np.ravel(f) for f in features]).astype(np.float32)
-        return feature_vector
+                # Concatenate into 1D float32 array
+                feature_vector = np.concatenate([np.ravel(f) for f in features]).astype(np.float32)
+                return feature_vector
+            except Exception:
+                pass
+
+        # SciPy Fallback (bypasses Numba DLL block)
+        return self._extract_waveform_features_scipy(waveform, sr)
+
 
     def extract_file_features(self, file_input: Union[str, Path, bytes, io.BytesIO]) -> np.ndarray:
         """

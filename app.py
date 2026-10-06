@@ -838,11 +838,10 @@ def page_analysis():
                    "mel_db": compute_mel_spectrogram(waveform, sr=sr)}
             st.session_state["analysis"] = {"key": fkey, "filename": filename, "result": result, "vis": vis}
             status.empty()
-        except Exception:
+        except Exception as err:
             st.session_state["analysis"] = None
             status.empty()
-            md('<div class="err"><b>ANALYSIS FAILED</b><div class="m">Unable to process this audio file. '
-               'Check that the file format is supported and try again.</div></div>')
+            md(f'<div class="err"><b>ANALYSIS FAILED</b><div class="m">Unable to process this audio file: {E(str(err))}</div></div>')
             return
 
     a = st.session_state.get("analysis")

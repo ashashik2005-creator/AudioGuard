@@ -8,10 +8,16 @@ from pathlib import Path
 from typing import Union, List, Tuple, Dict, Any
 
 import numpy as np
-import librosa
 import soundfile as sf
+import scipy.signal as signal
+import scipy.fft as fft
 
 import config
+
+try:
+    import librosa
+except Exception:
+    librosa = None
 
 
 def compute_file_hash(file_input: Union[str, Path, bytes]) -> str:
@@ -50,15 +56,47 @@ def load_and_preprocess_audio(
         sample_rate (int): target sample rate (16000 Hz)
         duration (float): duration in seconds before truncation
     """
+    waveform = None
+    orig_sr = None
+
+    # 1. Try soundfile decoding first (fast, C-based, no Numba dependency)
     try:
         if isinstance(file_input, bytes):
-            file_input = io.BytesIO(file_input)
+            bio = io.BytesIO(file_input)
+        elif isinstance(file_input, io.BytesIO):
+            bio = file_input
+            bio.seek(0)
+        else:
+            bio = file_input
 
-        # Load audio using librosa (handles resampling, mono conversion, float32 scaling)
-        waveform, sr = librosa.load(file_input, sr=target_sr, mono=mono)
+        data, sr_read = sf.read(bio, dtype="float32")
+        orig_sr = sr_read
 
-    except Exception as e:
-        raise ValueError(f"Failed to decode audio file: {str(e)}")
+        if data.ndim > 1:
+            data = np.mean(data, axis=1)
+
+        if orig_sr != target_sr:
+            # Resample via scipy.signal.resample_poly
+            num = target_sr
+            den = orig_sr
+            gcd = np.gcd(num, den)
+            data = signal.resample_poly(data, num // gcd, den // gcd)
+
+        waveform = data
+    except Exception:
+        waveform = None
+
+    # 2. Fallback to librosa if soundfile failed and librosa is available
+    if waveform is None and librosa is not None:
+        try:
+            if isinstance(file_input, bytes):
+                file_input = io.BytesIO(file_input)
+            elif isinstance(file_input, io.BytesIO):
+                file_input.seek(0)
+
+            waveform, _ = librosa.load(file_input, sr=target_sr, mono=mono)
+        except Exception as e:
+            raise ValueError(f"Failed to decode audio file: {str(e)}")
 
     if waveform is None or len(waveform) == 0:
         raise ValueError("Audio file is empty or unreadable.")
@@ -147,6 +185,31 @@ def extract_sliding_windows(
     return windows
 
 
+def _hz_to_mel(hz: np.ndarray) -> np.ndarray:
+    return 2595.0 * np.log10(1.0 + hz / 700.0)
+
+
+def _mel_to_hz(mel: np.ndarray) -> np.ndarray:
+    return 700.0 * (10.0**(mel / 2595.0) - 1.0)
+
+
+def _get_mel_filterbank(sr: int, n_fft: int, n_mels: int) -> np.ndarray:
+    fmin, fmax = 0.0, sr / 2.0
+    mel_min, mel_max = _hz_to_mel(fmin), _hz_to_mel(fmax)
+    mel_pts = np.linspace(mel_min, mel_max, n_mels + 2)
+    hz_pts = _mel_to_hz(mel_pts)
+    bins = np.floor((n_fft + 1) * hz_pts / sr).astype(int)
+
+    fb = np.zeros((n_mels, n_fft // 2 + 1), dtype=np.float32)
+    for i in range(1, n_mels + 1):
+        left, center, right = bins[i-1], bins[i], bins[i+1]
+        if center > left:
+            fb[i-1, left:center] = (np.arange(left, center) - left) / (center - left)
+        if right > center:
+            fb[i-1, center:right] = (right - np.arange(center, right)) / (right - center)
+    return fb
+
+
 def compute_mel_spectrogram(
     waveform: np.ndarray,
     sr: int = config.SAMPLE_RATE,
@@ -157,11 +220,22 @@ def compute_mel_spectrogram(
     """
     Computes Log Mel-Spectrogram in dB scale for audio visualization.
     """
-    mel_spec = librosa.feature.melspectrogram(
-        y=waveform, sr=sr, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels
-    )
-    mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
-    return mel_spec_db
+    if librosa is not None:
+        try:
+            mel_spec = librosa.feature.melspectrogram(
+                y=waveform, sr=sr, n_fft=n_fft, hop_length=hop_length, n_mels=n_mels
+            )
+            return librosa.power_to_db(mel_spec, ref=np.max)
+        except Exception:
+            pass
+
+    # SciPy fallback
+    f, t, Zxx = signal.stft(waveform, fs=sr, nperseg=n_fft, noverlap=n_fft - hop_length, boundary=None)
+    mag = np.abs(Zxx) + 1e-10
+    fb = _get_mel_filterbank(sr, n_fft, n_mels)
+    mel_spec = np.dot(fb, mag)
+    mel_spec_db = 10 * np.log10(np.maximum(1e-10, mel_spec))
+    return mel_spec_db - np.max(mel_spec_db)
 
 
 def compute_mfcc_visualization(
@@ -172,5 +246,20 @@ def compute_mfcc_visualization(
     """
     Computes MFCC matrix for visualization.
     """
-    mfccs = librosa.feature.mfcc(y=waveform, sr=sr, n_mfcc=n_mfcc)
-    return mfccs
+    if librosa is not None:
+        try:
+            return librosa.feature.mfcc(y=waveform, sr=sr, n_mfcc=n_mfcc)
+        except Exception:
+            pass
+
+    # SciPy fallback
+    n_fft = 1024
+    hop_length = 512
+    f, t, Zxx = signal.stft(waveform, fs=sr, nperseg=n_fft, noverlap=n_fft - hop_length, boundary=None)
+    mag = np.abs(Zxx) + 1e-10
+    fb = _get_mel_filterbank(sr, n_fft, 40)
+    mel_spec = np.dot(fb, mag)
+    log_mel = np.log(np.maximum(1e-10, mel_spec))
+    mfcc = fft.dct(log_mel, type=2, axis=0, norm="ortho")[:n_mfcc]
+    return mfcc
+
