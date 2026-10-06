@@ -2,7 +2,7 @@
     "backend": "mfcc",
     "classifier_type": "rf",
     "feature_dim": 172,
-    "decision_threshold": 0.36,
+    "decision_threshold": 0.55,
     "uncertainty_margin": 0.05,
     "sample_rate": 16000,
     "window_seconds": 4.0

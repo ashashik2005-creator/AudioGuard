@@ -49,14 +49,14 @@ def train_mfcc_backend(
     print("\nFitting Scikit-Learn classifier...")
     pipeline.fit(X_train, y_train)
 
-    # Tune threshold on Validation Set
+    # Tune threshold on Validation Set (balanced around 0.50)
     val_probs = pipeline.predict_proba(X_valid)[:, 1]
     best_threshold = 0.50
     best_f1 = 0.0
-    for thresh in np.arange(0.30, 0.71, 0.02):
+    for thresh in np.arange(0.45, 0.56, 0.02):
         preds = (val_probs >= thresh).astype(int)
         f1 = f1_score(y_valid, preds, zero_division=0)
-        if f1 > best_f1:
+        if f1 >= best_f1:
             best_f1 = f1
             best_threshold = round(float(thresh), 2)
 
