@@ -1,0 +1,40 @@
+{
+    "baseline_model": {
+        "model_name": "Baseline Model (200 samples)",
+        "dataset_sample_count": 200,
+        "accuracy": 0.9667,
+        "precision": 1.0,
+        "recall": 0.9333,
+        "f1_score": 0.9655,
+        "roc_auc": 1.0,
+        "false_positive_rate": 0.0,
+        "false_negative_rate": 0.0667,
+        "equal_error_rate": 0.0333,
+        "decision_threshold": 0.5,
+        "uncertainty_margin": 0.05
+    },
+    "candidate_model": {
+        "accuracy": 0.9717741935483871,
+        "precision": 0.954954954954955,
+        "recall": 0.9814814814814815,
+        "f1_score": 0.9680365296803652,
+        "roc_auc": 0.9967592592592592,
+        "false_positive_rate": 0.03571428571428571,
+        "false_negative_rate": 0.018518518518518517,
+        "equal_error_rate": 0.016402116402116387,
+        "true_positives": 106,
+        "true_negatives": 135,
+        "false_positives": 5,
+        "false_negatives": 2,
+        "decision_threshold": 0.47,
+        "model_name": "Expanded Candidate Model (MFCC + RF)",
+        "dataset_sample_count": 1650,
+        "uncertainty_margin": 0.05
+    },
+    "summary": {
+        "accuracy_improvement": 0.0051,
+        "f1_improvement": 0.0025,
+        "roc_auc_improvement": -0.0032,
+        "promoted": true
+    }
+}

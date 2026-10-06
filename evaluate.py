@@ -40,12 +40,26 @@ def calculate_metrics(y_true: np.ndarray, y_pred: np.ndarray, y_prob: np.ndarray
     cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
     tn, fp, fn, tp = cm.ravel() if cm.size == 4 else (0, 0, 0, 0)
 
+    fpr = float(fp / (fp + tn)) if (fp + tn) > 0 else 0.0
+    fnr = float(fn / (fn + tp)) if (fn + tp) > 0 else 0.0
+
+    try:
+        fpr_curve, tpr_curve, _ = roc_curve(y_true, y_prob)
+        fnr_curve = 1.0 - tpr_curve
+        eer_idx = np.nanargmin(np.abs(fpr_curve - fnr_curve))
+        eer = float((fpr_curve[eer_idx] + fnr_curve[eer_idx]) / 2.0)
+    except Exception:
+        eer = 0.0
+
     metrics = {
         "accuracy": float(acc),
         "precision": float(prec),
         "recall": float(rec),
         "f1_score": float(f1),
         "roc_auc": float(auc),
+        "false_positive_rate": float(fpr),
+        "false_negative_rate": float(fnr),
+        "equal_error_rate": float(eer),
         "true_positives": int(tp),
         "true_negatives": int(tn),
         "false_positives": int(fp),
