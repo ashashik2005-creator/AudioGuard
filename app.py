@@ -640,6 +640,7 @@ def style_axes(fig, ax):
 
 def render_results(a: dict):
     r, vis = a["result"], a["vis"]
+    pred = r.get("prediction", "REAL")
     fake_p, real_p = r["fake_probability"], r["real_probability"]
     thr = r.get("decision_threshold", 0.50)
     margin = r.get("uncertainty_margin", 0.05)
