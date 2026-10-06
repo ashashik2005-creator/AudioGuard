@@ -591,6 +591,14 @@ def page_dashboard():
 # =====================================================================================
 def build_report_text(a: dict) -> str:
     r = a["result"]
+    uncertain = r.get("is_uncertain", False)
+    if uncertain:
+        classification_str = "INCONCLUSIVE"
+    elif r["prediction"] == "REAL":
+        classification_str = "AUTHENTIC AUDIO"
+    else:
+        classification_str = "AI-GENERATED AUDIO"
+
     return f"""==================================================
 AUDIOGUARD FORENSIC ANALYSIS REPORT
 ==================================================
@@ -598,12 +606,13 @@ Analysis Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}
 Audio Filename:     {a['filename']}
 Audio Duration:     {r['audio_duration_sec']:.2f} seconds
 
-CLASSIFICATION:     {r['prediction']}
-Confidence Score:   {r['confidence']:.2f}%
-REAL Probability:   {r['real_probability']:.2f}%
+CLASSIFICATION:     {classification_str}
+Real Probability:   {r['real_probability']:.2f}%
 AI Probability:     {r['fake_probability']:.2f}%
+Confidence Level:   {"Low / Borderline" if uncertain else f"{r['confidence']:.2f}%"}
 
 Detection Method:   {DETECTION_METHOD_STR}
+Decision Threshold: {r.get('decision_threshold', 0.5) * 100:.0f}%
 Processing Time:    {r['processing_time_sec']:.2f} seconds
 ==================================================
 AudioGuard provides probabilistic machine-learning predictions.
@@ -624,37 +633,56 @@ def render_results(a: dict):
     pred, conf = r["prediction"], r["confidence"]
     fake_p, real_p = r["fake_probability"], r["real_probability"]
     uncertain = r.get("is_uncertain", False)
+    thr = r.get("decision_threshold", 0.50)
 
     if uncertain:
-        cls, title, desc = "unsure", "RESULT INCONCLUSIVE", "Borderline result: the acoustic confidence is close to the decision threshold. Verification recommended."
+        cls = "unsure"
+        title = "INCONCLUSIVE"
+        subtitle = "The model cannot confidently distinguish authentic from AI-generated speech."
+        warning_box = ('<div style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);border-radius:12px;'
+                       'padding:14px 18px;margin-top:16px;color:#FBBF24;font-size:0.9rem;line-height:1.5;font-weight:600">'
+                       '⚠️ Both classes have similar model probabilities. This result should not be treated as a definitive classification.'
+                       '<br><span style="color:#CBD5E1;font-weight:400;font-size:0.85rem">Borderline result — the model probabilities are too close to the decision boundary for a reliable classification.'
+                       '<br>For best results, use a clear speech recording with minimal background noise and sufficient speech duration.</span></div>')
+        conf_display = "Low / Borderline"
+        verdict_color = "var(--amber)"
     elif pred == "REAL":
-        cls, title, desc = "real", "AUTHENTIC AUDIO", "The audio is classified as likely genuine human speech."
+        cls = "real"
+        title = "AUTHENTIC AUDIO"
+        subtitle = "The model found stronger evidence consistent with authentic speech."
+        warning_box = ""
+        conf_display = f"{conf:.1f}%"
+        verdict_color = "var(--green)"
     else:
-        cls, title, desc = "fake", "AI-GENERATED AUDIO", "The audio is classified as likely synthetic or AI-generated speech."
+        cls = "fake"
+        title = "AI-GENERATED AUDIO"
+        subtitle = "The model found stronger evidence consistent with synthetic speech."
+        warning_box = ""
+        conf_display = f"{conf:.1f}%"
+        verdict_color = "var(--red)"
 
     circ = 2 * np.pi * 52
-    off = circ * (1 - min(max(conf, 0), 100) / 100)
+    off = circ * (1 - min(max(conf if not uncertain else 50, 0), 100) / 100)
     md(f'''<div class="result {cls}">
         <div class="ring" style="--circ:{circ:.1f};--off:{off:.1f}">
           <svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="52"/><circle class="val" cx="60" cy="60" r="52"/></svg>
-          <div class="ring-txt"><b>{conf:.1f}%</b><small>CONFIDENCE</small></div>
+          <div class="ring-txt"><b>{"—" if uncertain else f"{conf:.0f}%"}</b><small>CONFIDENCE</small></div>
         </div>
         <div>
-          <div class="kicker">FORENSIC RESULT</div>
+          <div class="kicker">FORENSIC ASSESSMENT</div>
           <div class="verdict">{title}</div>
-          <div class="res-desc">{desc}</div>
+          <div class="res-desc">{subtitle}</div>
           <div class="probs">
-            <div><div class="ph"><span>REAL</span><span>{real_p:.1f}%</span></div><div class="bar r"><i style="width:{real_p:.1f}%"></i></div></div>
-            <div><div class="ph"><span>AI-GENERATED</span><span>{fake_p:.1f}%</span></div><div class="bar f"><i style="width:{fake_p:.1f}%"></i></div></div>
+            <div><div class="ph"><span>REAL PROBABILITY</span><span>{real_p:.1f}%</span></div><div class="bar r"><i style="width:{real_p:.1f}%"></i></div></div>
+            <div><div class="ph"><span>AI PROBABILITY</span><span>{fake_p:.1f}%</span></div><div class="bar f"><i style="width:{fake_p:.1f}%"></i></div></div>
           </div>
+          {warning_box}
         </div>
       </div>''')
 
-    thr = r.get("decision_threshold")
-    verdict_color = "var(--amber)" if uncertain else ("var(--green)" if pred == "REAL" else "var(--red)")
     tiles = [
-        ("Classification", f'<b class="txt" style="color:{verdict_color}">{"INCONCLUSIVE" if uncertain else ("REAL" if pred == "REAL" else "AI-GENERATED")}</b>'),
-        ("Confidence", f"<b>{conf:.1f}%</b>"),
+        ("Model Assessment", f'<b class="txt" style="color:{verdict_color}">{"INCONCLUSIVE" if uncertain else ("AUTHENTIC" if pred == "REAL" else "AI-GENERATED")}</b>'),
+        ("Confidence", f"<b>{conf_display}</b>"),
         ("Real probability", f'<b style="color:var(--green)">{real_p:.1f}%</b>'),
         ("AI probability", f'<b style="color:var(--red)">{fake_p:.1f}%</b>'),
         ("Processing time", f"<b>{r['processing_time_sec']:.2f} s</b>"),
@@ -663,10 +691,11 @@ def render_results(a: dict):
     ]
     if thr is not None:
         tiles.append(("Decision threshold", f"<b>{thr * 100:.0f}%</b>"))
+
     md('<div class="sec"><div class="sec-t">Result summary</div></div>')
     md('<div class="metrics">' + "".join(f'<div class="metric"><small>{k}</small>{v}</div>' for k, v in tiles) + '</div>')
 
-    # ---- acoustic forensics: three equal cards -----------------------------------
+    # ---- acoustic forensics: visualizations -----------------------------------
     md('<div class="sec"><div class="sec-t">Acoustic forensics</div></div>')
     waveform, sr = vis["waveform"], vis["sr"]
     plt.style.use("dark_background")
@@ -684,7 +713,7 @@ def render_results(a: dict):
     cm, cs = cols(2, gap="medium")
     with cm:
         with card("viz_mfcc"):
-            md('<div class="cardtitle"><b>MFCC</b><span>Cepstral features used for detection.</span></div>')
+            md('<div class="cardtitle"><b>MFCC</b><span>Cepstral features used for model inference.</span></div>')
             fig, ax = plt.subplots(figsize=(6, 3.2))
             style_axes(fig, ax)
             img = ax.imshow(vis["mfccs"], aspect="auto", origin="lower", cmap="viridis")
@@ -693,7 +722,7 @@ def render_results(a: dict):
             fig.tight_layout(); st.pyplot(fig); plt.close(fig)
     with cs:
         with card("viz_mel"):
-            md('<div class="cardtitle"><b>Mel-spectrogram</b><span>Time-frequency view of the speech.</span></div>')
+            md('<div class="cardtitle"><b>Mel-spectrogram</b><span>Time-frequency view of the speech signal.</span></div>')
             fig, ax = plt.subplots(figsize=(6, 3.2))
             style_axes(fig, ax)
             img = ax.imshow(vis["mel_db"], aspect="auto", origin="lower", cmap="magma")
@@ -701,17 +730,26 @@ def render_results(a: dict):
             ax.set_xlabel("Time frames", color="#94A3B8", fontsize=9); ax.set_ylabel("Mel band", color="#94A3B8", fontsize=9)
             fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
-    # ---- segment analysis (only if the backend returned several windows) -----------
+    # ---- segment analysis (only if backend provided multiple windows) -----------
     wins = r.get("windows") or []
     if len(wins) > 1:
         md('<div class="sec"><div class="sec-t">Segment analysis</div></div>')
         with card("segment"):
-            md('<div class="cardtitle"><b>AI probability over time</b><span>One score per sliding window.</span></div>')
+            md('<div class="cardtitle"><b>AI probability over time</b><span>Window-level forensic assessment.</span></div>')
+            
+            # Check for mixed segment evidence
+            has_fake_win = any(w["fake_prob"] >= thr * 100 for w in wins)
+            has_real_win = any(w["fake_prob"] < thr * 100 for w in wins)
+            if has_fake_win and has_real_win:
+                md('<div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;'
+                   'padding:10px 14px;margin-bottom:14px;color:#FBBF24;font-size:0.86rem;font-weight:700">'
+                   '⚠️ Mixed evidence across audio segments — speech characteristics vary across different time windows.</div>')
+
             fig, ax = plt.subplots(figsize=(10, 2.8))
             style_axes(fig, ax)
             xs = [(w["start_sec"] + w["end_sec"]) / 2 for w in wins]
             ys = [w["fake_prob"] for w in wins]
-            line_c = "#EF4444" if pred == "FAKE" else "#10B981"
+            line_c = "#F59E0B" if uncertain else ("#EF4444" if pred == "FAKE" else "#10B981")
             ax.plot(xs, ys, marker="o", color=line_c, linewidth=2.2)
             ax.fill_between(xs, ys, color=line_c, alpha=.10)
             if thr is not None:
@@ -721,16 +759,31 @@ def render_results(a: dict):
             ax.set_xlabel("Time (s)", color="#94A3B8", fontsize=9); ax.set_ylabel("AI probability (%)", color="#94A3B8", fontsize=9)
             ax.grid(True, color="#1D2940", alpha=.6)
             fig.tight_layout(); st.pyplot(fig); plt.close(fig)
-            md('<div class="segs">' + "".join(
-                f'<div class="seg"><small>{mmss(w["start_sec"])}–{mmss(w["end_sec"])}</small>'
-                f'<b style="color:{"var(--red)" if w["fake_prob"] >= 50 else "var(--green)"}">{w["fake_prob"]:.1f}%</b>'
-                f'<span>AI probability</span></div>' for w in wins) + '</div>')
+
+            seg_items = []
+            for w in wins:
+                fp = w["fake_prob"]
+                if abs(fp - thr * 100) <= 5:
+                    seg_label = "BORDERLINE"
+                    seg_color = "var(--amber)"
+                elif fp >= thr * 100:
+                    seg_label = "AI-GENERATED"
+                    seg_color = "var(--red)"
+                else:
+                    seg_label = "AUTHENTIC"
+                    seg_color = "var(--green)"
+                seg_items.append(
+                    f'<div class="seg"><small>{mmss(w["start_sec"])}–{mmss(w["end_sec"])}</small>'
+                    f'<b style="color:{seg_color}">{fp:.1f}%</b>'
+                    f'<span>{seg_label}</span></div>'
+                )
+            md('<div class="segs">' + "".join(seg_items) + '</div>')
 
     # ---- report -----------------------------------------------------------------
     md('<div class="sec"><div class="sec-t">Analysis report</div></div>')
     with card("report"):
         md(f'<div class="cardtitle"><b>{E(a["filename"])}</b><span>{E(DETECTION_METHOD_STR)}</span></div>'
-           f'<div class="note">The report lists the classification, probabilities, duration and processing time for this recording.</div>')
+           f'<div class="note">The report lists the model assessment, probabilities, duration, and processing time for this recording.</div>')
         d1, d2 = cols(2, gap="medium")
         with d1:
             st.download_button("Download Analysis Report", data=build_report_text(a),
@@ -741,7 +794,8 @@ def render_results(a: dict):
                 st.session_state["reset_count"] += 1
                 st.session_state["analysis"] = None
                 st.rerun()
-    md('<div class="note">AudioGuard provides probabilistic machine-learning predictions. Results should be treated as '
+
+    md('<div class="note" style="margin-top:16px">AudioGuard provides probabilistic machine-learning predictions. Results should be treated as '
        'automated indicators rather than absolute proof of authenticity.</div>')
 
 
@@ -771,6 +825,10 @@ def page_analysis():
                                    label_visibility="collapsed", key=f"uploader_{st.session_state['reset_count']}")
             if buf:
                 filename = buf.name
+                suffix = Path(filename).suffix.lower()
+                if suffix not in [".wav", ".mp3", ".flac", ".ogg", ".m4a"]:
+                    md('<div class="err"><b>ANALYSIS FAILED</b><div class="m">Unsupported audio format. Please upload WAV, MP3, FLAC, OGG, or M4A.</div></div>')
+                    return
         elif hasattr(st, "audio_input"):
             buf = st.audio_input("Record", label_visibility="collapsed", key=f"recorder_{st.session_state['reset_count']}")
             if buf:
@@ -838,15 +896,16 @@ def page_analysis():
                    "mel_db": compute_mel_spectrogram(waveform, sr=sr)}
             st.session_state["analysis"] = {"key": fkey, "filename": filename, "result": result, "vis": vis}
             status.empty()
-        except Exception as err:
+        except Exception:
             st.session_state["analysis"] = None
             status.empty()
-            md(f'<div class="err"><b>ANALYSIS FAILED</b><div class="m">Unable to process this audio file: {E(str(err))}</div></div>')
+            md('<div class="err"><b>ANALYSIS FAILED</b><div class="m">Unable to complete the forensic analysis. Please try another recording.</div></div>')
             return
 
     a = st.session_state.get("analysis")
     if a and a["key"] == fkey:
         render_results(a)
+
 
 
 # =====================================================================================
