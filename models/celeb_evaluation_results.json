@@ -1,0 +1,309 @@
+{
+    "general_test_metrics": {
+        "accuracy": 0.9758064516129032,
+        "precision": 0.9636363636363636,
+        "recall": 0.9814814814814815,
+        "f1_score": 0.9724770642201835,
+        "roc_auc": 0.994973544973545,
+        "false_positive_rate": 0.02857142857142857,
+        "false_negative_rate": 0.018518518518518517,
+        "equal_error_rate": 0.016402116402116387,
+        "true_positives": 106,
+        "true_negatives": 136,
+        "false_positives": 4,
+        "false_negatives": 2
+    },
+    "celebrity_test_metrics": {
+        "accuracy": 0.8983451536643026,
+        "precision": 0.8838174273858921,
+        "recall": 0.9342105263157895,
+        "f1_score": 0.908315565031983,
+        "roc_auc": 0.9712100764732343,
+        "false_positive_rate": 0.14358974358974358,
+        "false_negative_rate": 0.06578947368421052,
+        "equal_error_rate": 0.07574224021592443,
+        "true_positives": 213,
+        "true_negatives": 167,
+        "false_positives": 28,
+        "false_negatives": 15
+    },
+    "person_wise": [
+        {
+            "person": "Speaker_id00052",
+            "speaker_id": "id00052",
+            "real_samples": 6,
+            "fake_samples": 10,
+            "total_samples": 16,
+            "real_acc": 83.33,
+            "fake_acc": 100.0,
+            "overall_acc": 93.75
+        },
+        {
+            "person": "Speaker_id00098",
+            "speaker_id": "id00098",
+            "real_samples": 8,
+            "fake_samples": 14,
+            "total_samples": 22,
+            "real_acc": 87.5,
+            "fake_acc": 100.0,
+            "overall_acc": 95.45
+        },
+        {
+            "person": "Speaker_id00231",
+            "speaker_id": "id00231",
+            "real_samples": 4,
+            "fake_samples": 5,
+            "total_samples": 9,
+            "real_acc": 100.0,
+            "fake_acc": 60.0,
+            "overall_acc": 77.78
+        },
+        {
+            "person": "Speaker_id00264",
+            "speaker_id": "id00264",
+            "real_samples": 10,
+            "fake_samples": 10,
+            "total_samples": 20,
+            "real_acc": 80.0,
+            "fake_acc": 90.0,
+            "overall_acc": 85.0
+        },
+        {
+            "person": "Speaker_id00548",
+            "speaker_id": "id00548",
+            "real_samples": 9,
+            "fake_samples": 15,
+            "total_samples": 24,
+            "real_acc": 77.78,
+            "fake_acc": 93.33,
+            "overall_acc": 87.5
+        },
+        {
+            "person": "Speaker_id00633",
+            "speaker_id": "id00633",
+            "real_samples": 5,
+            "fake_samples": 3,
+            "total_samples": 8,
+            "real_acc": 100.0,
+            "fake_acc": 66.67,
+            "overall_acc": 87.5
+        },
+        {
+            "person": "Speaker_id00763",
+            "speaker_id": "id00763",
+            "real_samples": 8,
+            "fake_samples": 5,
+            "total_samples": 13,
+            "real_acc": 100.0,
+            "fake_acc": 80.0,
+            "overall_acc": 92.31
+        },
+        {
+            "person": "Speaker_id00857",
+            "speaker_id": "id00857",
+            "real_samples": 9,
+            "fake_samples": 11,
+            "total_samples": 20,
+            "real_acc": 77.78,
+            "fake_acc": 100.0,
+            "overall_acc": 90.0
+        },
+        {
+            "person": "Speaker_id00897",
+            "speaker_id": "id00897",
+            "real_samples": 5,
+            "fake_samples": 6,
+            "total_samples": 11,
+            "real_acc": 100.0,
+            "fake_acc": 100.0,
+            "overall_acc": 100.0
+        },
+        {
+            "person": "Speaker_id00987",
+            "speaker_id": "id00987",
+            "real_samples": 9,
+            "fake_samples": 9,
+            "total_samples": 18,
+            "real_acc": 88.89,
+            "fake_acc": 100.0,
+            "overall_acc": 94.44
+        },
+        {
+            "person": "Speaker_id01170",
+            "speaker_id": "id01170",
+            "real_samples": 9,
+            "fake_samples": 13,
+            "total_samples": 22,
+            "real_acc": 100.0,
+            "fake_acc": 92.31,
+            "overall_acc": 95.45
+        },
+        {
+            "person": "Speaker_id01207",
+            "speaker_id": "id01207",
+            "real_samples": 8,
+            "fake_samples": 9,
+            "total_samples": 17,
+            "real_acc": 87.5,
+            "fake_acc": 100.0,
+            "overall_acc": 94.12
+        },
+        {
+            "person": "Speaker_id01223",
+            "speaker_id": "id01223",
+            "real_samples": 9,
+            "fake_samples": 9,
+            "total_samples": 18,
+            "real_acc": 100.0,
+            "fake_acc": 88.89,
+            "overall_acc": 94.44
+        },
+        {
+            "person": "Speaker_id01236",
+            "speaker_id": "id01236",
+            "real_samples": 9,
+            "fake_samples": 12,
+            "total_samples": 21,
+            "real_acc": 66.67,
+            "fake_acc": 91.67,
+            "overall_acc": 80.95
+        },
+        {
+            "person": "Speaker_id02586",
+            "speaker_id": "id02586",
+            "real_samples": 8,
+            "fake_samples": 12,
+            "total_samples": 20,
+            "real_acc": 100.0,
+            "fake_acc": 100.0,
+            "overall_acc": 100.0
+        },
+        {
+            "person": "Speaker_id02808",
+            "speaker_id": "id02808",
+            "real_samples": 10,
+            "fake_samples": 10,
+            "total_samples": 20,
+            "real_acc": 100.0,
+            "fake_acc": 100.0,
+            "overall_acc": 100.0
+        },
+        {
+            "person": "Speaker_id04374",
+            "speaker_id": "id04374",
+            "real_samples": 9,
+            "fake_samples": 7,
+            "total_samples": 16,
+            "real_acc": 100.0,
+            "fake_acc": 100.0,
+            "overall_acc": 100.0
+        },
+        {
+            "person": "Speaker_id04490",
+            "speaker_id": "id04490",
+            "real_samples": 9,
+            "fake_samples": 11,
+            "total_samples": 20,
+            "real_acc": 100.0,
+            "fake_acc": 72.73,
+            "overall_acc": 85.0
+        },
+        {
+            "person": "Speaker_id04561",
+            "speaker_id": "id04561",
+            "real_samples": 9,
+            "fake_samples": 13,
+            "total_samples": 22,
+            "real_acc": 66.67,
+            "fake_acc": 100.0,
+            "overall_acc": 86.36
+        },
+        {
+            "person": "Speaker_id04774",
+            "speaker_id": "id04774",
+            "real_samples": 6,
+            "fake_samples": 6,
+            "total_samples": 12,
+            "real_acc": 50.0,
+            "fake_acc": 100.0,
+            "overall_acc": 75.0
+        },
+        {
+            "person": "Speaker_id04789",
+            "speaker_id": "id04789",
+            "real_samples": 1,
+            "fake_samples": 1,
+            "total_samples": 2,
+            "real_acc": 100.0,
+            "fake_acc": 100.0,
+            "overall_acc": 100.0
+        },
+        {
+            "person": "Speaker_id06061",
+            "speaker_id": "id06061",
+            "real_samples": 7,
+            "fake_samples": 7,
+            "total_samples": 14,
+            "real_acc": 100.0,
+            "fake_acc": 85.71,
+            "overall_acc": 92.86
+        },
+        {
+            "person": "Speaker_id06269",
+            "speaker_id": "id06269",
+            "real_samples": 10,
+            "fake_samples": 13,
+            "total_samples": 23,
+            "real_acc": 50.0,
+            "fake_acc": 100.0,
+            "overall_acc": 78.26
+        },
+        {
+            "person": "Speaker_id06594",
+            "speaker_id": "id06594",
+            "real_samples": 9,
+            "fake_samples": 9,
+            "total_samples": 18,
+            "real_acc": 77.78,
+            "fake_acc": 100.0,
+            "overall_acc": 88.89
+        },
+        {
+            "person": "Speaker_id07163",
+            "speaker_id": "id07163",
+            "real_samples": 9,
+            "fake_samples": 8,
+            "total_samples": 17,
+            "real_acc": 77.78,
+            "fake_acc": 75.0,
+            "overall_acc": 76.47
+        }
+    ],
+    "generator_wise": [
+        {
+            "generator": "faceswap-wav2lip",
+            "samples": 69,
+            "accuracy": 95.65
+        },
+        {
+            "generator": "fsgan-wav2lip",
+            "samples": 73,
+            "accuracy": 86.3
+        },
+        {
+            "generator": "human",
+            "samples": 195,
+            "accuracy": 85.64
+        },
+        {
+            "generator": "rtvc",
+            "samples": 2,
+            "accuracy": 100.0
+        },
+        {
+            "generator": "wav2lip",
+            "samples": 84,
+            "accuracy": 97.62
+        }
+    ]
+}

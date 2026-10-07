@@ -19,4 +19,8 @@ Thumbs.db
 # Audio Data Files
 data/raw/
 data/processed/
-
+data/celebrity_audio/train/
+data/celebrity_audio/valid/
+data/celebrity_audio/test/
+features/
+models/*candidate*
