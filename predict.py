@@ -46,10 +46,10 @@ def predict_audio_file(audio_path: Union[str, Path], backend: str = None) -> Dic
     processing time, and window-level breakdown.
     """
     start_time = time.time()
-    audio_path = Path(audio_path)
-
-    if not audio_path.exists():
-        raise FileNotFoundError(f"Audio file not found: {audio_path}")
+    if isinstance(audio_path, (str, Path)):
+        audio_path = Path(audio_path)
+        if not audio_path.exists():
+            raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
     # Load model and config
     classifier, extractor, config_info = load_trained_model_and_config()

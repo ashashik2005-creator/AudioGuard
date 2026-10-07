@@ -893,27 +893,17 @@ def page_analysis():
                f'<div class="proc-li">{E(CLASSIFIER_NAME)} classification</div><div class="proc-li">Result generation</div>'
                '<div class="indet"><i></i></div></div>')
         try:
-            suffix = Path(filename).suffix or ".wav"
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                tmp.write(data)
-                temp_path = tmp.name
-            try:
-                result = predict_audio_file(temp_path, backend="mfcc")      # unchanged backend call
-            finally:
-                try:
-                    os.remove(temp_path)
-                except Exception:
-                    pass
+            result = predict_audio_file(data, backend="mfcc")
             waveform, sr, _ = load_and_preprocess_audio(data)
             vis = {"waveform": waveform, "sr": sr,
                    "mfccs": compute_mfcc_visualization(waveform, sr=sr),
                    "mel_db": compute_mel_spectrogram(waveform, sr=sr)}
             st.session_state["analysis"] = {"key": fkey, "filename": filename, "result": result, "vis": vis}
             status.empty()
-        except Exception:
+        except Exception as e:
             st.session_state["analysis"] = None
             status.empty()
-            md('<div class="err"><b>ANALYSIS FAILED</b><div class="m">Unable to complete the forensic analysis. Please try another recording.</div></div>')
+            md(f'<div class="err"><b>ANALYSIS FAILED</b><div class="m">Unable to complete forensic analysis: {E(str(e))}</div></div>')
             return
 
     a = st.session_state.get("analysis")
