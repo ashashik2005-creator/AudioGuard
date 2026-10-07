@@ -67,5 +67,12 @@ WEIGHT_DECAY = 1e-4
 DEFAULT_DECISION_THRESHOLD = 0.50
 UNCERTAINTY_MARGIN = 0.05  # Scores within [threshold - margin, threshold + margin] are inconclusive
 
+# Audio Quality Validation Parameters
+QUALITY_MIN_RAW_PEAK = 1e-5           # Peak amplitude below this is digital silence
+QUALITY_MIN_SPEECH_DURATION = 0.35    # Minimum total active speech duration in seconds
+QUALITY_MAX_SPECTRAL_FLATNESS = 0.70   # Max allowed spectral flatness (flat noise threshold)
+QUALITY_ENERGY_THRESHOLD = 0.015      # Frame RMS energy threshold for voice activity detection
+
 # HuggingFace Dataset Source
 HF_DATASET_NAME = "garystafford/deepfake-audio-detection"
+

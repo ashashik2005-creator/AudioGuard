@@ -148,13 +148,14 @@ def load_and_preprocess_audio(
 
     original_duration = len(waveform) / target_sr
 
-    # Check for silent / zero audio
-    max_amp = np.max(np.abs(waveform))
-    if max_amp < 1e-6:
-        raise ValueError("Audio waveform is silent or contains no audible signal.")
+    # Measure raw max amplitude before peak normalization
+    raw_max_amp = float(np.max(np.abs(waveform)))
 
-    # Peak normalization
-    waveform = waveform / max_amp
+    # Only peak-normalize if raw signal is above noise floor (>= 1e-4)
+    if raw_max_amp >= 1e-4:
+        waveform = waveform / raw_max_amp
+    else:
+        waveform = waveform.copy()
 
     # Truncate if longer than max_duration (60 seconds = 960,000 samples at 16 kHz)
     max_samples = int(max_duration * target_sr)
@@ -162,6 +163,162 @@ def load_and_preprocess_audio(
         waveform = waveform[:max_samples]
 
     return waveform.astype(np.float32), target_sr, original_duration
+
+
+def check_audio_quality(
+    waveform: np.ndarray,
+    sr: int = config.SAMPLE_RATE,
+    original_duration: float = 0.0
+) -> Dict[str, Any]:
+    """
+    Deterministically validates audio usability and quality BEFORE machine learning model inference.
+
+    Inspects:
+    1. Corrupted, empty, or non-finite audio arrays
+    2. Completely silent or near-silent audio (RMS level or peak amplitude < threshold)
+    3. Insufficient speech/voice activity duration (< 0.35 seconds)
+    4. No speech / non-speech frequency hum / sub-bass noise
+    5. Heavy broadband noise / extreme disturbance (spectral flatness > 0.60)
+
+    Returns:
+        dict containing:
+            - is_usable (bool): True if audio passes quality validation, False if rejected
+            - status (str): "PASSED" or "FAILED"
+            - reason (str): Human-readable rejection reason (if FAILED), else None
+            - metrics (dict): Internal telemetry (duration, sample_rate, channels, rms_level, non_silent_percentage, etc.)
+    """
+    metrics = {
+        "duration": float(original_duration),
+        "sample_rate": int(sr),
+        "channels": 1,
+        "rms_level": 0.0,
+        "non_silent_percentage": 0.0,
+        "active_duration_sec": 0.0,
+        "spectral_flatness": 0.0,
+        "speech_band_ratio": 0.0,
+        "quality_status": "PASSED",
+        "quality_rejection_reason": None
+    }
+
+    # Gate 1: Corrupted or invalid array
+    if waveform is None or len(waveform) == 0 or not np.isfinite(waveform).all():
+        metrics["quality_status"] = "FAILED"
+        metrics["quality_rejection_reason"] = "Audio file is corrupted or unreadable."
+        return {
+            "is_usable": False,
+            "status": "FAILED",
+            "reason": "Audio file is corrupted or unreadable.",
+            "metrics": metrics
+        }
+
+    rms_val = float(np.sqrt(np.mean(waveform**2)))
+    max_amp = float(np.max(np.abs(waveform)))
+    metrics["rms_level"] = round(rms_val, 6)
+
+    # Gate 2: Completely Muted or Near-Silent Audio (Digital zero / noise floor < 1e-4)
+    if max_amp < 1e-4 or rms_val < 1e-5:
+        metrics["quality_status"] = "FAILED"
+        metrics["quality_rejection_reason"] = "No usable audio signal was detected."
+        return {
+            "is_usable": False,
+            "status": "FAILED",
+            "reason": "No usable audio signal was detected.",
+            "metrics": metrics
+        }
+
+    # Frame-level Voice Activity Detection (VAD)
+    frame_len = int(0.030 * sr)
+    hop_len = int(0.015 * sr)
+    num_frames = max(1, (len(waveform) - frame_len) // hop_len + 1)
+    
+    frame_rms = []
+    for i in range(num_frames):
+        start = i * hop_len
+        end = start + frame_len
+        chunk = waveform[start:end]
+        f_rms = np.sqrt(np.mean(chunk**2)) if len(chunk) > 0 else 0.0
+        frame_rms.append(f_rms)
+        
+    frame_rms = np.array(frame_rms)
+    
+    # Energy threshold for active speech in normalized waveform
+    energy_thresh = getattr(config, "QUALITY_ENERGY_THRESHOLD", 0.015)
+    non_silent_mask = frame_rms > energy_thresh
+    non_silent_count = int(np.sum(non_silent_mask))
+    non_silent_pct = float((non_silent_count / len(frame_rms)) * 100.0)
+    active_duration = float(non_silent_count * (hop_len / sr))
+    
+    metrics["non_silent_percentage"] = round(non_silent_pct, 2)
+    metrics["active_duration_sec"] = round(active_duration, 2)
+
+    # Gate 3: Very Low Energy / Near Silent Signal
+    if rms_val < 0.003 or (non_silent_pct < 2.0 and active_duration < 0.2):
+        metrics["quality_status"] = "FAILED"
+        metrics["quality_rejection_reason"] = "No usable audio signal was detected."
+        return {
+            "is_usable": False,
+            "status": "FAILED",
+            "reason": "No usable audio signal was detected.",
+            "metrics": metrics
+        }
+
+    # Gate 4 & 5: Frequency Energy & Spectral Flatness Check
+    try:
+        n_fft = 512
+        _, _, Zxx = signal.stft(waveform, fs=sr, nperseg=n_fft)
+        mag_spec = np.abs(Zxx) + 1e-10
+        freqs = np.fft.rfftfreq(n_fft, 1.0 / sr)
+        
+        speech_band_mask = (freqs >= 300) & (freqs <= 3400)
+        total_energy = np.sum(mag_spec**2)
+        speech_energy = np.sum(mag_spec[speech_band_mask, :]**2)
+        speech_band_ratio = float(speech_energy / total_energy) if total_energy > 0 else 0.0
+        metrics["speech_band_ratio"] = round(speech_band_ratio, 4)
+
+        # Gate 4: Insufficient Speech / No Voice Content
+        min_speech_dur = getattr(config, "QUALITY_MIN_SPEECH_DURATION", 0.35)
+        if speech_band_ratio < 0.15 or active_duration < min_speech_dur:
+            metrics["quality_status"] = "FAILED"
+            metrics["quality_rejection_reason"] = "Insufficient speech content for reliable forensic analysis."
+            return {
+                "is_usable": False,
+                "status": "FAILED",
+                "reason": "Insufficient speech content for reliable forensic analysis.",
+                "metrics": metrics
+            }
+
+        # Gate 5: Heavy Disturbance / Extreme Noise Check (Spectral Flatness)
+        spec_mean = np.mean(mag_spec, axis=1)
+        log_spec = np.log(spec_mean)
+        gmean = np.exp(np.mean(log_spec))
+        amean = np.mean(spec_mean)
+        spec_flatness = float(gmean / amean)
+        metrics["spectral_flatness"] = round(spec_flatness, 4)
+
+        max_flatness = getattr(config, "QUALITY_MAX_SPECTRAL_FLATNESS", 0.70)
+        # Flat broadband noise has flatness > 0.60
+        if spec_flatness > 0.60:
+            metrics["quality_status"] = "FAILED"
+            metrics["quality_rejection_reason"] = "Audio quality is insufficient for reliable forensic analysis."
+            return {
+                "is_usable": False,
+                "status": "FAILED",
+                "reason": "Audio quality is insufficient for reliable forensic analysis.",
+                "metrics": metrics
+            }
+    except Exception:
+        pass
+
+    metrics["quality_status"] = "PASSED"
+    return {
+        "is_usable": True,
+        "status": "PASSED",
+        "reason": None,
+        "metrics": metrics
+    }
+
+
+
 
 
 def pad_or_crop_waveform(

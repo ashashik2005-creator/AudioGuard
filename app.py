@@ -598,6 +598,31 @@ def build_report_text(a: dict) -> str:
     upper_b = (thr + margin) * 100
     pred = r.get("prediction", "REAL")
     uncertain = r.get("is_uncertain", False) or (pred == "INCONCLUSIVE")
+    is_qual_rej = r.get("is_quality_rejected", False)
+
+    if is_qual_rej:
+        reason = r.get("quality_rejection_reason", "Insufficient usable audio for reliable forensic analysis.")
+        return f"""==================================================
+AUDIOGUARD FORENSIC ANALYSIS REPORT
+==================================================
+Analysis Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}
+Audio Filename:     {a['filename']}
+Audio Duration:     {r['audio_duration_sec']:.2f} seconds
+
+CLASSIFICATION:     INCONCLUSIVE (AUDIO QUALITY FAILED)
+Rejection Reason:   {reason}
+Real Probability:   N/A (Quality Check Failed)
+AI Probability:     N/A (Quality Check Failed)
+Confidence Level:   N/A
+
+Detection Method:   {DETECTION_METHOD_STR}
+Decision Threshold: {thr * 100:.0f}%
+Uncertainty Range:  {lower_b:.0f}%–{upper_b:.0f}%
+Processing Time:    {r['processing_time_sec']:.2f} seconds
+==================================================
+AudioGuard provides probabilistic machine-learning predictions.
+Audio quality check failed prior to inference. Model probabilities are omitted.
+"""
 
     if uncertain or pred == "INCONCLUSIVE":
         classification_str = "INCONCLUSIVE"
@@ -649,8 +674,36 @@ def render_results(a: dict):
     upper_b = (thr + margin) * 100
 
     uncertain = r.get("is_uncertain", False) or (pred == "INCONCLUSIVE")
+    is_qual_rej = r.get("is_quality_rejected", False)
 
-    if uncertain or pred == "INCONCLUSIVE":
+    if is_qual_rej:
+        reason_msg = r.get("quality_rejection_reason", "Insufficient usable audio for reliable forensic analysis.")
+        cls = "unsure"
+        title = "INCONCLUSIVE"
+        subtitle = reason_msg
+        warning_box = (f'<div style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);border-radius:12px;'
+                       f'padding:14px 18px;margin-top:16px;color:#FBBF24;font-size:0.9rem;line-height:1.5;font-weight:600">'
+                       f'⚠️ Audio Quality Check Failed: {E(reason_msg)}'
+                       f'<br><span style="color:#CBD5E1;font-weight:400;font-size:0.85rem">'
+                       f'The uploaded audio did not pass quality validation. Model inference was bypassed to prevent misleading predictions.</span></div>')
+        conf_display = "N/A"
+        verdict_color = "var(--amber)"
+        prob_bars_html = ('<div class="probs">'
+                          '<div><div class="ph"><span>REAL PROBABILITY</span><span>N/A</span></div><div class="bar r"><i style="width:0%"></i></div></div>'
+                          '<div><div class="ph"><span>AI PROBABILITY</span><span>N/A</span></div><div class="bar f"><i style="width:0%"></i></div></div>'
+                          '</div>')
+        tiles = [
+            ("Model Assessment", f'<b class="txt" style="color:{verdict_color}">{title}</b>'),
+            ("Quality Check", f'<b style="color:var(--amber)">FAILED</b>'),
+            ("Rejection Reason", f'<b class="txt" style="color:var(--amber)">{E(reason_msg)}</b>'),
+            ("Confidence", f"<b>{conf_display}</b>"),
+            ("Real probability", f'<b style="color:var(--muted)">N/A</b>'),
+            ("AI probability", f'<b style="color:var(--muted)">N/A</b>'),
+            ("Processing time", f"<b>{r['processing_time_sec']:.2f} s</b>"),
+            ("Audio duration", f"<b>{r['audio_duration_sec']:.1f} s</b>"),
+            ("Detection method", f'<b class="txt">{E(DETECTION_METHOD_STR)}</b>'),
+        ]
+    elif uncertain or pred == "INCONCLUSIVE":
         cls = "unsure"
         title = "INCONCLUSIVE"
         subtitle = "The available acoustic evidence is not strong enough to reliably distinguish authentic from AI-generated speech."
@@ -661,6 +714,21 @@ def render_results(a: dict):
                        '<br>For best results, use a clear speech recording with minimal background noise and sufficient speech duration.</span></div>')
         conf_display = "Low / Borderline"
         verdict_color = "var(--amber)"
+        prob_bars_html = (f'<div class="probs">'
+                          f'<div><div class="ph"><span>REAL PROBABILITY</span><span>{real_p:.1f}%</span></div><div class="bar r"><i style="width:{real_p:.1f}%"></i></div></div>'
+                          f'<div><div class="ph"><span>AI PROBABILITY</span><span>{fake_p:.1f}%</span></div><div class="bar f"><i style="width:{fake_p:.1f}%"></i></div></div>'
+                          f'</div>')
+        tiles = [
+            ("Model Assessment", f'<b class="txt" style="color:{verdict_color}">{title}</b>'),
+            ("Confidence", f"<b>{conf_display}</b>"),
+            ("Real probability", f'<b style="color:var(--green)">{real_p:.1f}%</b>'),
+            ("AI probability", f'<b style="color:var(--red)">{fake_p:.1f}%</b>'),
+            ("Processing time", f"<b>{r['processing_time_sec']:.2f} s</b>"),
+            ("Audio duration", f"<b>{r['audio_duration_sec']:.1f} s</b>"),
+            ("Detection method", f'<b class="txt">{E(DETECTION_METHOD_STR)}</b>'),
+            ("Decision threshold", f"<b>{thr * 100:.0f}%</b>"),
+            ("Uncertainty range", f"<b>{lower_b:.0f}%–{upper_b:.0f}%</b>"),
+        ]
     elif pred == "REAL":
         cls = "real"
         title = "REAL"
@@ -668,6 +736,21 @@ def render_results(a: dict):
         warning_box = ""
         conf_display = f"{real_p:.1f}%"
         verdict_color = "var(--green)"
+        prob_bars_html = (f'<div class="probs">'
+                          f'<div><div class="ph"><span>REAL PROBABILITY</span><span>{real_p:.1f}%</span></div><div class="bar r"><i style="width:{real_p:.1f}%"></i></div></div>'
+                          f'<div><div class="ph"><span>AI PROBABILITY</span><span>{fake_p:.1f}%</span></div><div class="bar f"><i style="width:{fake_p:.1f}%"></i></div></div>'
+                          f'</div>')
+        tiles = [
+            ("Model Assessment", f'<b class="txt" style="color:{verdict_color}">{title}</b>'),
+            ("Confidence", f"<b>{conf_display}</b>"),
+            ("Real probability", f'<b style="color:var(--green)">{real_p:.1f}%</b>'),
+            ("AI probability", f'<b style="color:var(--red)">{fake_p:.1f}%</b>'),
+            ("Processing time", f"<b>{r['processing_time_sec']:.2f} s</b>"),
+            ("Audio duration", f"<b>{r['audio_duration_sec']:.1f} s</b>"),
+            ("Detection method", f'<b class="txt">{E(DETECTION_METHOD_STR)}</b>'),
+            ("Decision threshold", f"<b>{thr * 100:.0f}%</b>"),
+            ("Uncertainty range", f"<b>{lower_b:.0f}%–{upper_b:.0f}%</b>"),
+        ]
     else:
         cls = "fake"
         title = "AI-GENERATED"
@@ -675,40 +758,44 @@ def render_results(a: dict):
         warning_box = ""
         conf_display = f"{fake_p:.1f}%"
         verdict_color = "var(--red)"
+        prob_bars_html = (f'<div class="probs">'
+                          f'<div><div class="ph"><span>REAL PROBABILITY</span><span>{real_p:.1f}%</span></div><div class="bar r"><i style="width:{real_p:.1f}%"></i></div></div>'
+                          f'<div><div class="ph"><span>AI PROBABILITY</span><span>{fake_p:.1f}%</span></div><div class="bar f"><i style="width:{fake_p:.1f}%"></i></div></div>'
+                          f'</div>')
+        tiles = [
+            ("Model Assessment", f'<b class="txt" style="color:{verdict_color}">{title}</b>'),
+            ("Confidence", f"<b>{conf_display}</b>"),
+            ("Real probability", f'<b style="color:var(--green)">{real_p:.1f}%</b>'),
+            ("AI probability", f'<b style="color:var(--red)">{fake_p:.1f}%</b>'),
+            ("Processing time", f"<b>{r['processing_time_sec']:.2f} s</b>"),
+            ("Audio duration", f"<b>{r['audio_duration_sec']:.1f} s</b>"),
+            ("Detection method", f'<b class="txt">{E(DETECTION_METHOD_STR)}</b>'),
+            ("Decision threshold", f"<b>{thr * 100:.0f}%</b>"),
+            ("Uncertainty range", f"<b>{lower_b:.0f}%–{upper_b:.0f}%</b>"),
+        ]
 
     circ = 2 * np.pi * 52
-    off = circ * (1 - min(max(real_p if title == 'REAL' else (fake_p if title == 'AI-GENERATED' else 50), 0), 100) / 100)
+    ring_val_str = "N/A" if is_qual_rej else ("—" if uncertain else f"{real_p if title == 'REAL' else fake_p:.0f}%")
+    ring_sub_str = "QUALITY" if is_qual_rej else "CONFIDENCE"
+    off = circ if is_qual_rej else circ * (1 - min(max(real_p if title == 'REAL' else (fake_p if title == 'AI-GENERATED' else 50), 0), 100) / 100)
+
     md(f'''<div class="result {cls}">
         <div class="ring" style="--circ:{circ:.1f};--off:{off:.1f}">
           <svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="52"/><circle class="val" cx="60" cy="60" r="52"/></svg>
-          <div class="ring-txt"><b>{"—" if uncertain else f"{real_p if title == 'REAL' else fake_p:.0f}%"}</b><small>CONFIDENCE</small></div>
+          <div class="ring-txt"><b>{ring_val_str}</b><small>{ring_sub_str}</small></div>
         </div>
         <div>
           <div class="kicker">FORENSIC ASSESSMENT</div>
           <div class="verdict">{title}</div>
           <div class="res-desc">{subtitle}</div>
-          <div class="probs">
-            <div><div class="ph"><span>REAL PROBABILITY</span><span>{real_p:.1f}%</span></div><div class="bar r"><i style="width:{real_p:.1f}%"></i></div></div>
-            <div><div class="ph"><span>AI PROBABILITY</span><span>{fake_p:.1f}%</span></div><div class="bar f"><i style="width:{fake_p:.1f}%"></i></div></div>
-          </div>
+          {prob_bars_html}
           {warning_box}
         </div>
       </div>''')
 
-    tiles = [
-        ("Model Assessment", f'<b class="txt" style="color:{verdict_color}">{title}</b>'),
-        ("Confidence", f"<b>{conf_display}</b>"),
-        ("Real probability", f'<b style="color:var(--green)">{real_p:.1f}%</b>'),
-        ("AI probability", f'<b style="color:var(--red)">{fake_p:.1f}%</b>'),
-        ("Processing time", f"<b>{r['processing_time_sec']:.2f} s</b>"),
-        ("Audio duration", f"<b>{r['audio_duration_sec']:.1f} s</b>"),
-        ("Detection method", f'<b class="txt">{E(DETECTION_METHOD_STR)}</b>'),
-        ("Decision threshold", f"<b>{thr * 100:.0f}%</b>"),
-        ("Uncertainty range", f"<b>{lower_b:.0f}%–{upper_b:.0f}%</b>"),
-    ]
-
     md('<div class="sec"><div class="sec-t">Result summary</div></div>')
     md('<div class="metrics">' + "".join(f'<div class="metric"><small>{k}</small>{v}</div>' for k, v in tiles) + '</div>')
+
 
     # ---- acoustic forensics: visualizations -----------------------------------
     md('<div class="sec"><div class="sec-t">Acoustic forensics</div></div>')

@@ -13,7 +13,7 @@ import numpy as np
 import joblib
 
 import config
-from audio_utils import load_and_preprocess_audio, extract_sliding_windows
+from audio_utils import load_and_preprocess_audio, extract_sliding_windows, check_audio_quality
 from features import HandcraftedFeatureExtractor
 
 
@@ -42,8 +42,9 @@ def predict_audio_file(audio_path: Union[str, Path, bytes, Any], backend: str = 
     """
     Runs audio deepfake inference on an input audio file path, byte stream, or file object.
 
-    Returns prediction summary containing label, probabilities, confidence,
-    processing time, and window-level breakdown.
+    First validates audio quality and usability BEFORE the ML pipeline.
+    If usable, proceeds to existing MFCC + StandardScaler + RandomForest model pipeline.
+    If unusable, returns INCONCLUSIVE without executing model inference.
     """
     start_time = time.time()
     file_label = "uploaded_audio.wav"
@@ -62,8 +63,54 @@ def predict_audio_file(audio_path: Union[str, Path, bytes, Any], backend: str = 
     threshold = config_info.get("decision_threshold", config.DEFAULT_DECISION_THRESHOLD)
     uncertainty_margin = config_info.get("uncertainty_margin", config.UNCERTAINTY_MARGIN)
 
-    # Preprocess audio
-    waveform, sr, original_duration = load_and_preprocess_audio(audio_path)
+    # 1. Preprocess audio & run deterministic quality check
+    try:
+        waveform, sr, original_duration = load_and_preprocess_audio(audio_path)
+        quality_res = check_audio_quality(waveform, sr=sr, original_duration=original_duration)
+    except Exception as e:
+        quality_res = {
+            "is_usable": False,
+            "status": "FAILED",
+            "reason": "Audio file is corrupted or unreadable.",
+            "metrics": {
+                "duration": 0.0,
+                "sample_rate": config.SAMPLE_RATE,
+                "channels": 1,
+                "rms_level": 0.0,
+                "non_silent_percentage": 0.0,
+                "active_duration_sec": 0.0,
+                "spectral_flatness": 0.0,
+                "quality_status": "FAILED",
+                "quality_rejection_reason": "Audio file is corrupted or unreadable."
+            }
+        }
+        waveform = np.zeros(config.WINDOW_SAMPLES, dtype=np.float32)
+        sr = config.SAMPLE_RATE
+        original_duration = 0.0
+
+    # 2. AUDIO QUALITY GATE: If unusable, BYPASS ML model inference entirely
+    if not quality_res["is_usable"]:
+        processing_time = round(time.time() - start_time, 2)
+        return {
+            "file": file_label,
+            "prediction": "INCONCLUSIVE",
+            "fake_probability": 50.0,
+            "real_probability": 50.0,
+            "confidence": 50.0,
+            "decision_threshold": threshold,
+            "uncertainty_margin": uncertainty_margin,
+            "is_uncertain": True,
+            "is_quality_rejected": True,
+            "quality_status": "FAILED",
+            "quality_rejection_reason": quality_res["reason"],
+            "processing_time_sec": processing_time,
+            "backend_used": selected_backend,
+            "audio_duration_sec": round(original_duration, 2),
+            "quality_telemetry": quality_res["metrics"],
+            "windows": []
+        }
+
+    # 3. EXISTING ML PIPELINE: Run sliding windows through MFCC + StandardScaler + RandomForest
     windows = extract_sliding_windows(waveform, target_sr=sr)
 
     window_results = []
@@ -116,9 +163,13 @@ def predict_audio_file(audio_path: Union[str, Path, bytes, Any], backend: str = 
         "decision_threshold": threshold,
         "uncertainty_margin": uncertainty_margin,
         "is_uncertain": is_uncertain,
+        "is_quality_rejected": False,
+        "quality_status": "PASSED",
+        "quality_rejection_reason": None,
         "processing_time_sec": processing_time,
         "backend_used": selected_backend,
         "audio_duration_sec": round(original_duration, 2),
+        "quality_telemetry": quality_res["metrics"],
         "windows": window_results
     }
 
@@ -133,7 +184,13 @@ def print_cli_prediction(result: Dict[str, Any]):
     print(f"Audio file: {result['file']}")
     print("-" * 50)
 
-    if result["is_uncertain"] or result["prediction"] == "INCONCLUSIVE":
+    if result.get("is_quality_rejected"):
+        print("\nPrediction: INCONCLUSIVE")
+        print(f"\nQuality Status: FAILED")
+        print(f"Reason:         {result.get('quality_rejection_reason')}")
+        print(f"\nProcessing time: {result['processing_time_sec']:.2f} seconds")
+        print("\nResult is inconclusive because the audio quality is insufficient for reliable forensic analysis.")
+    elif result["is_uncertain"] or result["prediction"] == "INCONCLUSIVE":
         print("\nPrediction: INCONCLUSIVE")
         print(f"Fake probability: {result['fake_probability']:.2f}%")
         print(f"Real probability: {result['real_probability']:.2f}%")
@@ -149,6 +206,7 @@ def print_cli_prediction(result: Dict[str, Any]):
         print(f"\nProcessing time:  {result['processing_time_sec']:.2f} seconds")
 
     print("=" * 50 + "\n")
+
 
 
 if __name__ == "__main__":
