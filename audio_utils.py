@@ -189,6 +189,7 @@ def extract_sliding_windows(
 ) -> List[Tuple[np.ndarray, float, float]]:
     """
     Divides an audio waveform into 4-second overlapping windows with 2-second hop step.
+    For audio > 4s, end-aligns tail windows to eliminate artificial zero-padding artifacts.
 
     Returns:
         List of tuples: (window_waveform, start_time_sec, end_time_sec)
@@ -203,25 +204,22 @@ def extract_sliding_windows(
 
     windows = []
     start_idx = 0
-    while start_idx < total_samples:
+    while start_idx + window_samples <= total_samples:
         end_idx = start_idx + window_samples
-        chunk = waveform[start_idx:min(end_idx, total_samples)]
-
-        # If last window is shorter than window_samples, pad it
-        if len(chunk) < window_samples:
-            chunk = pad_or_crop_waveform(chunk, window_samples)
-
+        chunk = waveform[start_idx:end_idx]
         start_sec = round(start_idx / target_sr, 2)
-        end_sec = round(min(end_idx, total_samples) / target_sr, 2)
-
+        end_sec = round(end_idx / target_sr, 2)
         windows.append((chunk, start_sec, end_sec))
-
-        # Move hop step
         start_idx += hop_samples
 
-        # Break if remaining samples are insignificant (less than 0.5 sec)
-        if total_samples - start_idx < int(0.5 * target_sr):
-            break
+    # If remaining un-analyzed tail is at least 0.5s, add an end-aligned window (no zero-padding)
+    if start_idx < total_samples and (total_samples - start_idx) >= int(0.5 * target_sr):
+        tail_start = total_samples - window_samples
+        if tail_start > 0 and (not windows or tail_start > int(windows[-1][0].shape[0])):
+            chunk = waveform[tail_start:total_samples]
+            start_sec = round(tail_start / target_sr, 2)
+            end_sec = round(total_samples / target_sr, 2)
+            windows.append((chunk, start_sec, end_sec))
 
     return windows
 
