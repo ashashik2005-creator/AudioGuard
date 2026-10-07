@@ -29,7 +29,7 @@
     },
     "person_wise": [
         {
-            "person": "Speaker_id00052",
+            "person": "Adam_Housley",
             "speaker_id": "id00052",
             "real_samples": 6,
             "fake_samples": 10,
@@ -39,7 +39,7 @@
             "overall_acc": 93.75
         },
         {
-            "person": "Speaker_id00098",
+            "person": "Adrienne_Frantz",
             "speaker_id": "id00098",
             "real_samples": 8,
             "fake_samples": 14,
@@ -49,7 +49,7 @@
             "overall_acc": 95.45
         },
         {
-            "person": "Speaker_id00231",
+            "person": "Alela_Diane",
             "speaker_id": "id00231",
             "real_samples": 4,
             "fake_samples": 5,
@@ -59,7 +59,7 @@
             "overall_acc": 77.78
         },
         {
-            "person": "Speaker_id00264",
+            "person": "Alex_OLoughlin",
             "speaker_id": "id00264",
             "real_samples": 10,
             "fake_samples": 10,
@@ -69,7 +69,7 @@
             "overall_acc": 85.0
         },
         {
-            "person": "Speaker_id00548",
+            "person": "Andr\u00e9_Villas-Boas",
             "speaker_id": "id00548",
             "real_samples": 9,
             "fake_samples": 15,
@@ -79,7 +79,7 @@
             "overall_acc": 87.5
         },
         {
-            "person": "Speaker_id00633",
+            "person": "Anna_Meares",
             "speaker_id": "id00633",
             "real_samples": 5,
             "fake_samples": 3,
@@ -89,7 +89,7 @@
             "overall_acc": 87.5
         },
         {
-            "person": "Speaker_id00763",
+            "person": "Arika_Sato",
             "speaker_id": "id00763",
             "real_samples": 8,
             "fake_samples": 5,
@@ -99,7 +99,7 @@
             "overall_acc": 92.31
         },
         {
-            "person": "Speaker_id00857",
+            "person": "Ayushmann_Khurrana",
             "speaker_id": "id00857",
             "real_samples": 9,
             "fake_samples": 11,
@@ -109,7 +109,7 @@
             "overall_acc": 90.0
         },
         {
-            "person": "Speaker_id00897",
+            "person": "Barbara_Schett",
             "speaker_id": "id00897",
             "real_samples": 5,
             "fake_samples": 6,
@@ -119,7 +119,7 @@
             "overall_acc": 100.0
         },
         {
-            "person": "Speaker_id00987",
+            "person": "Bernie_Mac",
             "speaker_id": "id00987",
             "real_samples": 9,
             "fake_samples": 9,
@@ -129,7 +129,7 @@
             "overall_acc": 94.44
         },
         {
-            "person": "Speaker_id01170",
+            "person": "Brandon_Jennings",
             "speaker_id": "id01170",
             "real_samples": 9,
             "fake_samples": 13,
@@ -139,7 +139,7 @@
             "overall_acc": 95.45
         },
         {
-            "person": "Speaker_id01207",
+            "person": "Brian_McKnight",
             "speaker_id": "id01207",
             "real_samples": 8,
             "fake_samples": 9,
@@ -149,7 +149,7 @@
             "overall_acc": 94.12
         },
         {
-            "person": "Speaker_id01223",
+            "person": "Bridgit_Mendler",
             "speaker_id": "id01223",
             "real_samples": 9,
             "fake_samples": 9,
@@ -159,7 +159,7 @@
             "overall_acc": 94.44
         },
         {
-            "person": "Speaker_id01236",
+            "person": "Brittney_Griner",
             "speaker_id": "id01236",
             "real_samples": 9,
             "fake_samples": 12,
@@ -169,7 +169,7 @@
             "overall_acc": 80.95
         },
         {
-            "person": "Speaker_id02586",
+            "person": "Erica_Hubbard",
             "speaker_id": "id02586",
             "real_samples": 8,
             "fake_samples": 12,
@@ -179,7 +179,7 @@
             "overall_acc": 100.0
         },
         {
-            "person": "Speaker_id02808",
+            "person": "Fiona_Wade",
             "speaker_id": "id02808",
             "real_samples": 10,
             "fake_samples": 10,
@@ -189,7 +189,7 @@
             "overall_acc": 100.0
         },
         {
-            "person": "Speaker_id04374",
+            "person": "Jourdan_Dunn",
             "speaker_id": "id04374",
             "real_samples": 9,
             "fake_samples": 7,
@@ -199,7 +199,7 @@
             "overall_acc": 100.0
         },
         {
-            "person": "Speaker_id04490",
+            "person": "Jwala_Gutta",
             "speaker_id": "id04490",
             "real_samples": 9,
             "fake_samples": 11,
@@ -209,7 +209,7 @@
             "overall_acc": 85.0
         },
         {
-            "person": "Speaker_id04561",
+            "person": "Karan_Mehra",
             "speaker_id": "id04561",
             "real_samples": 9,
             "fake_samples": 13,
@@ -219,7 +219,7 @@
             "overall_acc": 86.36
         },
         {
-            "person": "Speaker_id04774",
+            "person": "Ki_Sung-yueng",
             "speaker_id": "id04774",
             "real_samples": 6,
             "fake_samples": 6,
@@ -229,7 +229,7 @@
             "overall_acc": 75.0
         },
         {
-            "person": "Speaker_id04789",
+            "person": "Kim_Hyun-joong",
             "speaker_id": "id04789",
             "real_samples": 1,
             "fake_samples": 1,
@@ -239,7 +239,7 @@
             "overall_acc": 100.0
         },
         {
-            "person": "Speaker_id06061",
+            "person": "Michelle_Reis",
             "speaker_id": "id06061",
             "real_samples": 7,
             "fake_samples": 7,
@@ -249,7 +249,7 @@
             "overall_acc": 92.86
         },
         {
-            "person": "Speaker_id06269",
+            "person": "Munenori_Kawasaki",
             "speaker_id": "id06269",
             "real_samples": 10,
             "fake_samples": 13,
@@ -259,7 +259,7 @@
             "overall_acc": 78.26
         },
         {
-            "person": "Speaker_id06594",
+            "person": "Nobu_Matsuhisa",
             "speaker_id": "id06594",
             "real_samples": 9,
             "fake_samples": 9,
@@ -269,7 +269,7 @@
             "overall_acc": 88.89
         },
         {
-            "person": "Speaker_id07163",
+            "person": "Rahat_Fateh_Ali_Khan",
             "speaker_id": "id07163",
             "real_samples": 9,
             "fake_samples": 8,
