@@ -38,18 +38,23 @@ def load_trained_model_and_config() -> Tuple[Any, Any, Dict[str, Any]]:
     return pipeline, extractor, config_info
 
 
-def predict_audio_file(audio_path: Union[str, Path], backend: str = None) -> Dict[str, Any]:
+def predict_audio_file(audio_path: Union[str, Path, bytes, Any], backend: str = None) -> Dict[str, Any]:
     """
-    Runs audio deepfake inference on an input audio file.
+    Runs audio deepfake inference on an input audio file path, byte stream, or file object.
 
     Returns prediction summary containing label, probabilities, confidence,
     processing time, and window-level breakdown.
     """
     start_time = time.time()
+    file_label = "uploaded_audio.wav"
+
     if isinstance(audio_path, (str, Path)):
-        audio_path = Path(audio_path)
-        if not audio_path.exists():
-            raise FileNotFoundError(f"Audio file not found: {audio_path}")
+        path_obj = Path(audio_path)
+        if not path_obj.exists():
+            raise FileNotFoundError(f"Audio file not found: {path_obj}")
+        file_label = str(path_obj)
+    elif hasattr(audio_path, "name"):
+        file_label = str(getattr(audio_path, "name"))
 
     # Load model and config
     classifier, extractor, config_info = load_trained_model_and_config()
@@ -93,7 +98,7 @@ def predict_audio_file(audio_path: Union[str, Path], backend: str = None) -> Dic
     is_uncertain = abs(overall_fake_prob - threshold) <= uncertainty_margin
 
     result = {
-        "file": str(audio_path),
+        "file": file_label,
         "prediction": prediction_label,
         "fake_probability": round(overall_fake_prob * 100, 2),
         "real_probability": round(overall_real_prob * 100, 2),

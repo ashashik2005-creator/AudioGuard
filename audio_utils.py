@@ -3,6 +3,8 @@ Audio Utilities for Loading, Preprocessing, Normalization, Windowing, and Featur
 """
 
 import io
+import os
+import tempfile
 import hashlib
 from pathlib import Path
 from typing import Union, List, Tuple, Dict, Any
@@ -20,7 +22,7 @@ except Exception:
     librosa = None
 
 
-def compute_file_hash(file_input: Union[str, Path, bytes]) -> str:
+def compute_file_hash(file_input: Union[str, Path, bytes, Any]) -> str:
     """
     Computes SHA-256 hash for a file path or bytes object to detect exact duplicates.
     """
@@ -42,13 +44,13 @@ def compute_file_hash(file_input: Union[str, Path, bytes]) -> str:
 
 
 def load_and_preprocess_audio(
-    file_input: Union[str, Path, bytes, io.BytesIO],
+    file_input: Union[str, Path, bytes, io.BytesIO, Any],
     target_sr: int = config.SAMPLE_RATE,
     max_duration: float = config.MAX_AUDIO_SECONDS,
     mono: bool = config.MONO
 ) -> Tuple[np.ndarray, int, float]:
     """
-    Loads audio from a file path or byte stream, converts to mono, resamples to target_sr (16 kHz),
+    Loads audio from a file path, byte stream, or file-like object, converts to mono, resamples to target_sr (16 kHz),
     checks for invalid/corrupted audio, normalizes amplitude, and caps at max_duration (60s).
 
     Returns:
@@ -58,25 +60,33 @@ def load_and_preprocess_audio(
     """
     waveform = None
     orig_sr = None
+    audio_bytes = None
+    file_path = None
 
-    # 1. Try soundfile decoding first (fast, C-based, no Numba dependency)
+    # Determine input type & extract raw bytes / path
+    if isinstance(file_input, (str, Path)):
+        file_path = Path(file_input)
+    elif isinstance(file_input, bytes):
+        audio_bytes = file_input
+    elif hasattr(file_input, "read"):
+        audio_bytes = file_input.read()
+        if hasattr(file_input, "seek"):
+            file_input.seek(0)
+
+    # 1. Soundfile stream / path attempt
     try:
-        if isinstance(file_input, bytes):
-            bio = io.BytesIO(file_input)
-        elif isinstance(file_input, io.BytesIO):
-            bio = file_input
-            bio.seek(0)
+        if file_path is not None:
+            data, sr_read = sf.read(str(file_path), dtype="float32")
+        elif audio_bytes is not None:
+            data, sr_read = sf.read(io.BytesIO(audio_bytes), dtype="float32")
         else:
-            bio = file_input
+            data, sr_read = sf.read(file_input, dtype="float32")
 
-        data, sr_read = sf.read(bio, dtype="float32")
         orig_sr = sr_read
-
         if data.ndim > 1:
             data = np.mean(data, axis=1)
 
         if orig_sr != target_sr:
-            # Resample via scipy.signal.resample_poly
             num = target_sr
             den = orig_sr
             gcd = np.gcd(num, den)
@@ -86,17 +96,48 @@ def load_and_preprocess_audio(
     except Exception:
         waveform = None
 
-    # 2. Fallback to librosa if soundfile failed and librosa is available
+    # 2. Librosa stream / path attempt
     if waveform is None and librosa is not None:
         try:
-            if isinstance(file_input, bytes):
-                file_input = io.BytesIO(file_input)
-            elif isinstance(file_input, io.BytesIO):
-                file_input.seek(0)
+            if file_path is not None:
+                waveform, _ = librosa.load(str(file_path), sr=target_sr, mono=mono)
+            elif audio_bytes is not None:
+                waveform, _ = librosa.load(io.BytesIO(audio_bytes), sr=target_sr, mono=mono)
+            else:
+                waveform, _ = librosa.load(file_input, sr=target_sr, mono=mono)
+        except Exception:
+            waveform = None
 
-            waveform, _ = librosa.load(file_input, sr=target_sr, mono=mono)
+    # 3. Disk fallback via NamedTemporaryFile if stream decoding failed
+    if waveform is None and audio_bytes is not None:
+        tmp_file = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+                tmp.write(audio_bytes)
+                tmp_file = tmp.name
+
+            # Try soundfile then librosa on temp file
+            try:
+                data, sr_read = sf.read(tmp_file, dtype="float32")
+                if data.ndim > 1:
+                    data = np.mean(data, axis=1)
+                if sr_read != target_sr:
+                    num = target_sr
+                    den = sr_read
+                    gcd = np.gcd(num, den)
+                    data = signal.resample_poly(data, num // gcd, den // gcd)
+                waveform = data
+            except Exception:
+                if librosa is not None:
+                    waveform, _ = librosa.load(tmp_file, sr=target_sr, mono=mono)
         except Exception as e:
             raise ValueError(f"Failed to decode audio file: {str(e)}")
+        finally:
+            if tmp_file and os.path.exists(tmp_file):
+                try:
+                    os.unlink(tmp_file)
+                except Exception:
+                    pass
 
     if waveform is None or len(waveform) == 0:
         raise ValueError("Audio file is empty or unreadable.")
