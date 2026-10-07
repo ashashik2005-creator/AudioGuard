@@ -90,12 +90,22 @@ def predict_audio_file(audio_path: Union[str, Path, bytes, Any], backend: str = 
     overall_real_prob = 1.0 - overall_fake_prob
     processing_time = round(time.time() - start_time, 2)
 
-    is_fake = overall_fake_prob >= threshold
-    prediction_label = "FAKE" if is_fake else "REAL"
-    confidence_pct = overall_fake_prob * 100 if is_fake else overall_real_prob * 100
+    lower_bound = threshold - uncertainty_margin  # 0.50 - 0.05 = 0.45
+    upper_bound = threshold + uncertainty_margin  # 0.50 + 0.05 = 0.55
 
-    # Uncertainty check
-    is_uncertain = abs(overall_fake_prob - threshold) <= uncertainty_margin
+    # Threshold evaluation on actual unrounded probability
+    if overall_fake_prob > upper_bound:
+        prediction_label = "AI-GENERATED"
+        is_uncertain = False
+        confidence_pct = overall_fake_prob * 100.0
+    elif overall_fake_prob < lower_bound:
+        prediction_label = "REAL"
+        is_uncertain = False
+        confidence_pct = overall_real_prob * 100.0
+    else:
+        prediction_label = "INCONCLUSIVE"
+        is_uncertain = True
+        confidence_pct = max(overall_fake_prob, overall_real_prob) * 100.0
 
     result = {
         "file": file_label,
@@ -123,14 +133,14 @@ def print_cli_prediction(result: Dict[str, Any]):
     print(f"Audio file: {result['file']}")
     print("-" * 50)
 
-    if result["is_uncertain"]:
-        print("\nPrediction: UNCERTAIN")
+    if result["is_uncertain"] or result["prediction"] == "INCONCLUSIVE":
+        print("\nPrediction: INCONCLUSIVE")
         print(f"Fake probability: {result['fake_probability']:.2f}%")
         print(f"Real probability: {result['real_probability']:.2f}%")
         print(f"Confidence:       {result['confidence']:.2f}%")
         print(f"\nProcessing time:  {result['processing_time_sec']:.2f} seconds")
-        print("\nResult is uncertain.")
-        print("The audio should be treated as inconclusive.")
+        print("\nResult is inconclusive.")
+        print("Model probabilities fall within the uncertainty range (45% - 55%).")
     else:
         print(f"\nPrediction: {result['prediction']}")
         print(f"\nFake probability: {result['fake_probability']:.2f}%")

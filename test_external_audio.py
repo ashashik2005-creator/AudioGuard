@@ -34,13 +34,13 @@ def evaluate_external_file(file_path: Path) -> Dict[str, Any]:
     upper_b = (thr + margin) * 100
 
     if lower_b <= fake_p <= upper_b:
-        verdict = "INCONCLUSIVE (NOT SURE)"
-        desc = "Borderline result — model probabilities fall inside the uncertainty margin."
+        verdict = "INCONCLUSIVE"
+        desc = "Borderline result — model probabilities fall inside the uncertainty margin (45% - 55%)."
     elif fake_p < lower_b:
-        verdict = "AUTHENTIC AUDIO (REAL)"
+        verdict = "REAL"
         desc = "The model found stronger evidence consistent with authentic human speech."
     else:
-        verdict = "AI-GENERATED AUDIO (FAKE)"
+        verdict = "AI-GENERATED"
         desc = "The model found stronger evidence consistent with synthetic AI speech."
 
     print("\n" + "=" * 55)

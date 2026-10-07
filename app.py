@@ -596,16 +596,17 @@ def build_report_text(a: dict) -> str:
     fake_p = r["fake_probability"]
     lower_b = (thr - margin) * 100
     upper_b = (thr + margin) * 100
-    uncertain = r.get("is_uncertain", False) or (lower_b <= fake_p <= upper_b)
+    pred = r.get("prediction", "REAL")
+    uncertain = r.get("is_uncertain", False) or (pred == "INCONCLUSIVE")
 
-    if uncertain:
+    if uncertain or pred == "INCONCLUSIVE":
         classification_str = "INCONCLUSIVE"
         conf_str = "Low / Borderline"
-    elif fake_p < lower_b:
-        classification_str = "AUTHENTIC AUDIO"
+    elif pred == "REAL":
+        classification_str = "REAL"
         conf_str = f"{r['real_probability']:.2f}%"
     else:
-        classification_str = "AI-GENERATED AUDIO"
+        classification_str = "AI-GENERATED"
         conf_str = f"{r['fake_probability']:.2f}%"
 
     return f"""==================================================
@@ -647,40 +648,40 @@ def render_results(a: dict):
     lower_b = (thr - margin) * 100
     upper_b = (thr + margin) * 100
 
-    uncertain = r.get("is_uncertain", False) or (lower_b <= fake_p <= upper_b)
+    uncertain = r.get("is_uncertain", False) or (pred == "INCONCLUSIVE")
 
-    if uncertain:
+    if uncertain or pred == "INCONCLUSIVE":
         cls = "unsure"
         title = "INCONCLUSIVE"
         subtitle = "The available acoustic evidence is not strong enough to reliably distinguish authentic from AI-generated speech."
         warning_box = ('<div style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);border-radius:12px;'
                        'padding:14px 18px;margin-top:16px;color:#FBBF24;font-size:0.9rem;line-height:1.5;font-weight:600">'
-                       '⚠️ Model probabilities are too close to the decision boundary for a confident classification.'
+                       '⚠️ Model probabilities fall in the uncertainty range (45% – 55%) for a confident classification.'
                        '<br><span style="color:#CBD5E1;font-weight:400;font-size:0.85rem">Borderline result — the model probabilities fall inside the uncertainty range.'
                        '<br>For best results, use a clear speech recording with minimal background noise and sufficient speech duration.</span></div>')
         conf_display = "Low / Borderline"
         verdict_color = "var(--amber)"
-    elif fake_p < lower_b:
+    elif pred == "REAL":
         cls = "real"
-        title = "AUTHENTIC AUDIO"
+        title = "REAL"
         subtitle = "The model found stronger evidence consistent with authentic speech."
         warning_box = ""
         conf_display = f"{real_p:.1f}%"
         verdict_color = "var(--green)"
     else:
         cls = "fake"
-        title = "AI-GENERATED AUDIO"
+        title = "AI-GENERATED"
         subtitle = "The model found stronger evidence consistent with synthetic speech."
         warning_box = ""
         conf_display = f"{fake_p:.1f}%"
         verdict_color = "var(--red)"
 
     circ = 2 * np.pi * 52
-    off = circ * (1 - min(max(real_p if title == 'AUTHENTIC AUDIO' else (fake_p if title == 'AI-GENERATED AUDIO' else 50), 0), 100) / 100)
+    off = circ * (1 - min(max(real_p if title == 'REAL' else (fake_p if title == 'AI-GENERATED' else 50), 0), 100) / 100)
     md(f'''<div class="result {cls}">
         <div class="ring" style="--circ:{circ:.1f};--off:{off:.1f}">
           <svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="52"/><circle class="val" cx="60" cy="60" r="52"/></svg>
-          <div class="ring-txt"><b>{"—" if uncertain else f"{real_p if title == 'AUTHENTIC AUDIO' else fake_p:.0f}%"}</b><small>CONFIDENCE</small></div>
+          <div class="ring-txt"><b>{"—" if uncertain else f"{real_p if title == 'REAL' else fake_p:.0f}%"}</b><small>CONFIDENCE</small></div>
         </div>
         <div>
           <div class="kicker">FORENSIC ASSESSMENT</div>
@@ -695,7 +696,7 @@ def render_results(a: dict):
       </div>''')
 
     tiles = [
-        ("Model Assessment", f'<b class="txt" style="color:{verdict_color}">{"INCONCLUSIVE" if uncertain else ("AUTHENTIC AUDIO" if title == "AUTHENTIC AUDIO" else "AI-GENERATED AUDIO")}</b>'),
+        ("Model Assessment", f'<b class="txt" style="color:{verdict_color}">{title}</b>'),
         ("Confidence", f"<b>{conf_display}</b>"),
         ("Real probability", f'<b style="color:var(--green)">{real_p:.1f}%</b>'),
         ("AI probability", f'<b style="color:var(--red)">{fake_p:.1f}%</b>'),
@@ -752,8 +753,8 @@ def render_results(a: dict):
             md('<div class="cardtitle"><b>AI probability over time</b><span>Window-level forensic assessment.</span></div>')
             
             # Check for mixed segment evidence
-            has_fake_win = any(w["fake_prob"] >= thr * 100 for w in wins)
-            has_real_win = any(w["fake_prob"] < thr * 100 for w in wins)
+            has_fake_win = any(w["fake_prob"] > upper_b for w in wins)
+            has_real_win = any(w["fake_prob"] < lower_b for w in wins)
             if has_fake_win and has_real_win:
                 md('<div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;'
                    'padding:10px 14px;margin-bottom:14px;color:#FBBF24;font-size:0.86rem;font-weight:700">'
@@ -763,7 +764,7 @@ def render_results(a: dict):
             style_axes(fig, ax)
             xs = [(w["start_sec"] + w["end_sec"]) / 2 for w in wins]
             ys = [w["fake_prob"] for w in wins]
-            line_c = "#F59E0B" if uncertain else ("#EF4444" if pred == "FAKE" else "#10B981")
+            line_c = "#F59E0B" if uncertain else ("#EF4444" if pred == "AI-GENERATED" else "#10B981")
             ax.plot(xs, ys, marker="o", color=line_c, linewidth=2.2)
             ax.fill_between(xs, ys, color=line_c, alpha=.10)
             if thr is not None:
@@ -777,14 +778,14 @@ def render_results(a: dict):
             seg_items = []
             for w in wins:
                 fp = w["fake_prob"]
-                if abs(fp - thr * 100) <= 5:
-                    seg_label = "BORDERLINE"
+                if lower_b <= fp <= upper_b:
+                    seg_label = "INCONCLUSIVE"
                     seg_color = "var(--amber)"
-                elif fp >= thr * 100:
+                elif fp > upper_b:
                     seg_label = "AI-GENERATED"
                     seg_color = "var(--red)"
                 else:
-                    seg_label = "AUTHENTIC"
+                    seg_label = "REAL"
                     seg_color = "var(--green)"
                 seg_items.append(
                     f'<div class="seg"><small>{mmss(w["start_sec"])}–{mmss(w["end_sec"])}</small>'
