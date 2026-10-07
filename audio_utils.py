@@ -263,3 +263,36 @@ def compute_mfcc_visualization(
     mfcc = fft.dct(log_mel, type=2, axis=0, norm="ortho")[:n_mfcc]
     return mfcc
 
+
+def apply_mild_training_augmentation(waveform: np.ndarray, sr: int = config.SAMPLE_RATE) -> np.ndarray:
+    """
+    Applies mild, non-distorting audio augmentation exclusively for training set generalization:
+    - Mild Gaussian background noise (SNR ~35 dB)
+    - Mild gain/volume scaling (0.85 - 1.15)
+    - Mild time shift (up to 50 ms)
+    """
+    aug_wave = waveform.copy()
+    
+    # 1. Mild Gain Scaling
+    gain = np.random.uniform(0.85, 1.15)
+    aug_wave = aug_wave * gain
+    
+    # 2. Mild Time Shift
+    max_shift = int(sr * 0.05)  # 50 ms
+    shift = np.random.randint(-max_shift, max_shift)
+    aug_wave = np.roll(aug_wave, shift)
+    
+    # 3. Mild Background Noise (SNR 35dB)
+    signal_power = np.mean(aug_wave**2) + 1e-10
+    noise_power = signal_power / (10 ** (35 / 10))
+    noise = np.random.normal(0, np.sqrt(noise_power), len(aug_wave))
+    aug_wave = aug_wave + noise
+    
+    # Re-normalize peak amplitude
+    max_val = np.max(np.abs(aug_wave))
+    if max_val > 0:
+        aug_wave = aug_wave / max_val
+        
+    return aug_wave.astype(np.float32)
+
+
