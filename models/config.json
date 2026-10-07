@@ -2,8 +2,11 @@
     "backend": "mfcc",
     "classifier_type": "rf",
     "feature_dim": 172,
-    "decision_threshold": 0.50,
+    "decision_threshold": 0.5,
     "uncertainty_margin": 0.05,
     "sample_rate": 16000,
-    "window_seconds": 4.0
+    "window_seconds": 4.0,
+    "best_hyperparams": "{'n_estimators': 500, 'max_depth': 18, 'min_samples_split': 4, 'min_samples_leaf': 2, 'class_weight': {0: 1.2, 1: 1.0}, 'max_features': 'sqrt', 'random_state': 42}",
+    "test_accuracy": 94.27,
+    "test_roc_auc": 0.9866
 }
