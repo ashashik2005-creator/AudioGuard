@@ -26,12 +26,12 @@ def build_mfcc_classifier(classifier_type: str = "rf") -> Pipeline:
 
     if classifier_type.lower() == "rf":
         clf = RandomForestClassifier(
-            n_estimators=300,
-            max_depth=15,
+            n_estimators=400,
+            max_depth=16,
             min_samples_split=4,
             min_samples_leaf=2,
             max_features="sqrt",
-            class_weight="balanced",
+            class_weight={0: 1.25, 1: 1.0},
             random_state=config.RANDOM_SEED,
             n_jobs=-1
         )

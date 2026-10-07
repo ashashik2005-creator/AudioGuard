@@ -1,15 +1,15 @@
 {
-    "accuracy": 0.9717741935483871,
-    "precision": 0.954954954954955,
-    "recall": 0.9814814814814815,
-    "f1_score": 0.9680365296803652,
-    "roc_auc": 0.9967592592592592,
-    "false_positive_rate": 0.03571428571428571,
-    "false_negative_rate": 0.018518518518518517,
+    "accuracy": 0.9758064516129032,
+    "precision": 0.9811320754716981,
+    "recall": 0.9629629629629629,
+    "f1_score": 0.9719626168224299,
+    "roc_auc": 0.996031746031746,
+    "false_positive_rate": 0.014285714285714285,
+    "false_negative_rate": 0.037037037037037035,
     "equal_error_rate": 0.016402116402116387,
-    "true_positives": 106,
-    "true_negatives": 135,
-    "false_positives": 5,
-    "false_negatives": 2,
-    "decision_threshold": 0.47
+    "true_positives": 104,
+    "true_negatives": 138,
+    "false_positives": 2,
+    "false_negatives": 4,
+    "decision_threshold": 0.55
 }
